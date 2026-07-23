@@ -97,6 +97,11 @@ export async function fetchSong(
       { new: true }
     );
 
+    if (!updatedSong) {
+      res.status(404).json({ success: false, error: "Song document not found after creation" });
+      return;
+    }
+
     res.status(200).json({
       success: true,
       source: "fetched",
