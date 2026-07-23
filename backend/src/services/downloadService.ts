@@ -79,7 +79,7 @@ export async function downloadAudio(
 
     // 5. Update Song document
     song.filePath = filePath;
-    song.streamUrl = `/api/stream/${encodeURIComponent(filename)}`;
+    song.streamUrl = `${config.publicBaseUrl}/api/stream/${encodeURIComponent(filename)}`;
     song.fileSize = stat.size;
     song.format = "m4a";
     song.status = "ready";

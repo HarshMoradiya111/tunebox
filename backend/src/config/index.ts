@@ -8,6 +8,7 @@ const config = {
   // Server
   port: parseInt(process.env.PORT || "5000", 10),
   nodeEnv: process.env.NODE_ENV || "development",
+  publicBaseUrl: process.env.BACKEND_PUBLIC_URL || "http://localhost:5000",
 
   // MongoDB
   mongoUri:

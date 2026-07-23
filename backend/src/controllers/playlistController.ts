@@ -5,6 +5,26 @@ import { getPlaylist } from "../services";
 
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
+async function attachStreamUrls(playlist: any) {
+  if (!playlist || !playlist.tracks || playlist.tracks.length === 0) return playlist;
+  
+  const trackSpotifyIds = playlist.tracks.map((t: any) => t.spotifyId);
+  const readySongs = await mongoose.model("Song").find({
+    spotifyTrackId: { $in: trackSpotifyIds },
+    status: "ready"
+  }).lean();
+
+  const streamUrlMap = new Map(readySongs.map((s: any) => [s.spotifyTrackId, s.streamUrl]));
+
+  return {
+    ...playlist,
+    tracks: playlist.tracks.map((t: any) => ({
+      ...t,
+      streamUrl: streamUrlMap.get(t.spotifyId) || t.streamUrl || undefined
+    }))
+  };
+}
+
 /**
  * GET /api/playlist/:spotifyId
  * Returns a playlist with its tracks, cache-first from MongoDB.
@@ -26,11 +46,17 @@ export async function getPlaylistById(
       .lean();
 
     if (cached && cached.tracks && cached.tracks.length > 0) {
-      res.json({ success: true, source: "cache", data: cached });
+      const playlistWithStreams = await attachStreamUrls(cached);
+      res.json({ success: true, source: "cache", data: playlistWithStreams });
       return;
     }
 
-    // Fetch from Spotify
+    // Fetch from Spotify (NOTE: FLAG - Mismatch in service expectation)
+    // The getPlaylist() function currently resolves to musicBrainzService.getPlaylist(), 
+    // which expects a MusicBrainz release UUID, NOT a Spotify Playlist ID. 
+    // If a cache miss occurs for an imported Spotify playlist, this will fail or throw.
+    // We are deliberately leaving this as-is pending a decision on whether to 
+    // re-trigger spotify-url-info scraping instead of MusicBrainz lookup.
     const spotifyPlaylist = await getPlaylist(spotifyId);
 
     // Upsert tracks
@@ -74,33 +100,8 @@ export async function getPlaylistById(
       .populate("tracks")
       .lean();
 
-    // --------------------------------------------------------
-    // PHASE 7: Pre-built Playlists - Attach stream URLs from Songs
-    // --------------------------------------------------------
-    let playlistToReturn = savedPlaylist || cached;
-    
-    if (playlistToReturn && playlistToReturn.tracks && playlistToReturn.tracks.length > 0) {
-      // Find all ready songs for these tracks
-      const trackSpotifyIds = playlistToReturn.tracks.map((t: any) => t.spotifyId);
-      const readySongs = await mongoose.model("Song").find({
-        spotifyTrackId: { $in: trackSpotifyIds },
-        status: "ready"
-      }).lean();
-
-      // Create a map of spotifyTrackId -> streamUrl
-      const streamUrlMap = new Map(readySongs.map((s: any) => [s.spotifyTrackId, s.streamUrl]));
-
-      // Attach streamUrl to each track
-      playlistToReturn = {
-        ...playlistToReturn,
-        tracks: playlistToReturn.tracks.map((t: any) => ({
-          ...t,
-          streamUrl: streamUrlMap.get(t.spotifyId) || undefined
-        }))
-      };
-    }
-
-    res.json({ success: true, source: cached ? "cache" : "spotify", data: playlistToReturn });
+    const playlistWithStreams = await attachStreamUrls(savedPlaylist);
+    res.json({ success: true, source: "spotify", data: playlistWithStreams });
   } catch (error) {
     next(error);
   }
