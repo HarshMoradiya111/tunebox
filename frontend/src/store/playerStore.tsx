@@ -9,6 +9,7 @@ import React, {
   useEffect,
   type ReactNode,
 } from "react";
+import { resolveTrackStream } from "@/lib/api";
 
 // --- Types ---
 
@@ -87,8 +88,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [repeatMode, setRepeatMode] = useState<"off" | "all" | "one">("off");
 
   // --- Internal: load a track into the audio element ---
+  // Phase 6: cache-first, fetch-on-miss
   const loadTrack = useCallback(
-    (track: PlayerTrack) => {
+    (track: PlayerTrack, autoPlay = false) => {
       const audio = audioRef.current;
       if (!audio) return;
 
@@ -97,19 +99,59 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       setCurrentTime(0);
 
       if (track.streamUrl) {
-        // Stream URL from backend
+        // Already has a stream URL — play immediately
         const url = track.streamUrl.startsWith("http")
           ? track.streamUrl
           : `${API_BASE}${track.streamUrl}`;
         audio.src = url;
+        audio.load();
+        if (autoPlay) {
+          audio.addEventListener("canplay", () => audio.play().catch(() => {}), {
+            once: true,
+          });
+        }
       } else {
-        // No stream URL yet — will be handled by Phase 6 fetch-on-miss
-        audio.src = "";
-        setIsLoading(false);
-        return;
-      }
+        // No stream URL — trigger fetch-on-miss
+        resolveTrackStream({
+          title: track.title,
+          artist: track.artist,
+          spotifyTrackId: track.spotifyId,
+          album: track.album,
+          albumArt: track.albumArt,
+        }).then((result) => {
+          if (result) {
+            // Update the track with the resolved stream URL
+            const resolvedTrack = { ...track, streamUrl: result.streamUrl };
+            setCurrentTrack(resolvedTrack);
 
-      audio.load();
+            const streamSrc = result.streamUrl.startsWith("http")
+              ? result.streamUrl
+              : `${API_BASE}${result.streamUrl}`;
+            audio.src = streamSrc;
+            audio.load();
+            // Auto-play after fetching
+            audio.addEventListener("canplay", () => audio.play().catch(() => {}), {
+              once: true,
+            });
+
+            // Update the track in the queue so replays are instant
+            setQueue((prevQueue) =>
+              prevQueue.map((t) =>
+                (t.id === track.id || t.spotifyId === track.spotifyId)
+                  ? { ...t, streamUrl: result.streamUrl }
+                  : t
+              )
+            );
+          } else {
+            // Download failed
+            setIsLoading(false);
+            console.error(`Failed to resolve stream for "${track.title}"`);
+          }
+        }).catch((err) => {
+          setIsLoading(false);
+          console.error("Track resolution error:", err);
+        });
+      }
     },
     []
   );
@@ -132,16 +174,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       } else if (queueIndex < queue.length - 1) {
         const nextIdx = queueIndex + 1;
         setQueueIndex(nextIdx);
-        loadTrack(queue[nextIdx]);
-        audio.addEventListener("canplay", () => audio.play().catch(() => {}), {
-          once: true,
-        });
+        loadTrack(queue[nextIdx], true);
       } else if (repeatMode === "all" && queue.length > 0) {
         setQueueIndex(0);
-        loadTrack(queue[0]);
-        audio.addEventListener("canplay", () => audio.play().catch(() => {}), {
-          once: true,
-        });
+        loadTrack(queue[0], true);
       } else {
         setIsPlaying(false);
       }
@@ -183,14 +219,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     (track: PlayerTrack) => {
       setQueue([track]);
       setQueueIndex(0);
-      loadTrack(track);
-
-      const audio = audioRef.current;
-      if (audio) {
-        audio.addEventListener("canplay", () => audio.play().catch(() => {}), {
-          once: true,
-        });
-      }
+      loadTrack(track, true);
     },
     [loadTrack]
   );
@@ -200,14 +229,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       if (tracks.length === 0) return;
       setQueue(tracks);
       setQueueIndex(startIndex);
-      loadTrack(tracks[startIndex]);
-
-      const audio = audioRef.current;
-      if (audio) {
-        audio.addEventListener("canplay", () => audio.play().catch(() => {}), {
-          once: true,
-        });
-      }
+      loadTrack(tracks[startIndex], true);
     },
     [loadTrack]
   );
@@ -241,13 +263,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       }
     }
     setQueueIndex(nextIdx);
-    loadTrack(queue[nextIdx]);
-    const audio = audioRef.current;
-    if (audio) {
-      audio.addEventListener("canplay", () => audio.play().catch(() => {}), {
-        once: true,
-      });
-    }
+    loadTrack(queue[nextIdx], true);
   }, [queue, queueIndex, repeatMode, loadTrack]);
 
   const prevTrack = useCallback(() => {
@@ -260,12 +276,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     if (queue.length === 0 || queueIndex <= 0) return;
     const prevIdx = queueIndex - 1;
     setQueueIndex(prevIdx);
-    loadTrack(queue[prevIdx]);
-    if (audio) {
-      audio.addEventListener("canplay", () => audio.play().catch(() => {}), {
-        once: true,
-      });
-    }
+    loadTrack(queue[prevIdx], true);
   }, [queue, queueIndex, loadTrack]);
 
   const seek = useCallback((time: number) => {
