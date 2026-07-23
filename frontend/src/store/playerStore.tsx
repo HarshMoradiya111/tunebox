@@ -9,6 +9,7 @@ import React, {
   useEffect,
   type ReactNode,
 } from "react";
+import ReactPlayer from "react-player";
 import { resolveTrackStream } from "@/lib/api";
 
 // --- Types ---
@@ -62,8 +63,8 @@ interface PlayerActions {
   // Modes
   toggleShuffle: () => void;
   cycleRepeat: () => void;
-  // Audio ref
-  audioRef: React.RefObject<HTMLAudioElement | null>;
+  // Player ref
+  playerRef: React.RefObject<ReactPlayer | null>;
 }
 
 type PlayerContextType = PlayerState & PlayerActions;
@@ -75,7 +76,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 // --- Provider ---
 
 export function PlayerProvider({ children }: { children: ReactNode }) {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const playerRef = useRef<ReactPlayer | null>(null);
 
   const [currentTrack, setCurrentTrack] = useState<PlayerTrack | null>(null);
   const [queue, setQueue] = useState<PlayerTrack[]>([]);
@@ -94,23 +95,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // Phase 6: cache-first, fetch-on-miss
   const loadTrack = useCallback(
     (track: PlayerTrack, autoPlay = false) => {
-      const audio = audioRef.current;
-      if (!audio) return;
-
       setCurrentTrack(track);
       setIsLoading(true);
       setCurrentTime(0);
+      if (autoPlay) setIsPlaying(true);
 
       if (track.streamUrl) {
-        // Already has a stream URL — play immediately
-        const url = track.streamUrl.startsWith("http")
-          ? track.streamUrl
-          : `${API_BASE}${track.streamUrl}`;
-        audio.src = url;
-        audio.load();
-        if (autoPlay) {
-          audio.play().catch((err) => console.error("Playback error:", err));
-        }
+        // Already has a stream URL — ReactPlayer will handle playback via the URL prop
       } else {
         // No stream URL — trigger fetch-on-miss
         resolveTrackStream({
@@ -124,17 +115,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             // Update the track with the resolved stream URL
             const resolvedTrack = { ...track, streamUrl: result.streamUrl };
             setCurrentTrack(resolvedTrack);
-
-            const streamSrc = result.streamUrl.startsWith("http")
-              ? result.streamUrl
-              : `${API_BASE}${result.streamUrl}`;
-            audio.src = streamSrc;
-            audio.load();
-            
-            // Auto-play after fetching
-            if (autoPlay) {
-              audio.play().catch((err) => console.error("Playback error:", err));
-            }
+            if (autoPlay) setIsPlaying(true);
 
             // Update the track in the queue so replays are instant
             setQueue((prevQueue) => {
@@ -179,26 +160,23 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   );
 
   // --- Audio event handlers ---
-  const onTimeUpdate = () => {
-    if (audioRef.current) setCurrentTime(audioRef.current.currentTime);
+  const onProgress = (state: { playedSeconds: number }) => {
+    setCurrentTime(state.playedSeconds);
   };
   
-  const onDurationChange = () => {
-    if (audioRef.current) setDuration(audioRef.current.duration || 0);
+  const onDuration = (duration: number) => {
+    setDuration(duration);
   };
   
-  const onCanPlay = () => setIsLoading(false);
+  const onReady = () => setIsLoading(false);
   const onPlay = () => setIsPlaying(true);
   const onPause = () => setIsPlaying(false);
   
   const onEnded = () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    
     // Auto-advance logic
     if (repeatMode === "one") {
-      audio.currentTime = 0;
-      audio.play().catch(() => {});
+      playerRef.current?.seekTo(0);
+      setIsPlaying(true);
     } else if (queueIndex < queue.length - 1) {
       const nextIdx = queueIndex + 1;
       setQueueIndex(nextIdx);
@@ -211,17 +189,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     }
   };
   
-  const onError = () => {
+  const onError = (e: any) => {
     setIsLoading(false);
-    console.error("Audio playback error");
+    console.error("Audio playback error:", e);
+    // If we get an error from YouTube, we could try skipping to the next track here
   };
-
-  // Sync volume to audio element
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    audio.volume = isMuted ? 0 : volume / 100;
-  }, [volume, isMuted]);
 
   // --- Actions ---
 
@@ -278,21 +250,15 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   );
 
   const togglePlay = useCallback(() => {
-    const audio = audioRef.current;
-    if (!audio || !currentTrack) return;
-    if (audio.paused) {
-      audio.play().catch(() => {});
-    } else {
-      audio.pause();
-    }
-  }, [currentTrack]);
+    setIsPlaying((prev) => !prev);
+  }, []);
 
   const pause = useCallback(() => {
-    audioRef.current?.pause();
+    setIsPlaying(false);
   }, []);
 
   const resume = useCallback(() => {
-    audioRef.current?.play().catch(() => {});
+    setIsPlaying(true);
   }, []);
 
   const nextTrack = useCallback(() => {
@@ -310,10 +276,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, [queue, queueIndex, repeatMode, loadTrack]);
 
   const prevTrack = useCallback(() => {
-    const audio = audioRef.current;
     // If more than 3 seconds in, restart current track
-    if (audio && audio.currentTime > 3) {
-      audio.currentTime = 0;
+    if (currentTime > 3) {
+      playerRef.current?.seekTo(0);
       return;
     }
     if (queue.length === 0) return;
@@ -330,16 +295,15 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, [queue, queueIndex, repeatMode, loadTrack]);
 
   const seek = useCallback((time: number) => {
-    const audio = audioRef.current;
-    if (audio) audio.currentTime = time;
+    playerRef.current?.seekTo(time, "seconds");
+    setCurrentTime(time);
   }, []);
 
   const seekPercent = useCallback((percent: number) => {
-    const audio = audioRef.current;
-    if (audio && audio.duration) {
-      audio.currentTime = (percent / 100) * audio.duration;
-    }
-  }, []);
+    const time = (percent / 100) * duration;
+    playerRef.current?.seekTo(time, "seconds");
+    setCurrentTime(time);
+  }, [duration]);
 
   const setVolume = useCallback((vol: number) => {
     setVolumeState(vol);
@@ -419,23 +383,45 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     toggleMute,
     toggleShuffle,
     cycleRepeat,
-    audioRef,
+    playerRef,
   };
+
+  const currentStreamUrl = currentTrack?.streamUrl 
+    ? (currentTrack.streamUrl.startsWith("http") ? currentTrack.streamUrl : `${API_BASE}${currentTrack.streamUrl}`) 
+    : undefined;
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <PlayerContext.Provider value={value}>
-      {/* Hidden audio element for playback */}
-      <audio
-        ref={audioRef}
-        preload="auto"
-        onTimeUpdate={onTimeUpdate}
-        onDurationChange={onDurationChange}
-        onCanPlay={onCanPlay}
-        onPlay={onPlay}
-        onPause={onPause}
-        onEnded={onEnded}
-        onError={onError}
-      />
+      {/* Hidden ReactPlayer for audio/video streaming */}
+      <div style={{ display: "none" }}>
+        {mounted && (
+          <ReactPlayer
+            ref={playerRef}
+            url={currentStreamUrl}
+            playing={isPlaying}
+            volume={isMuted ? 0 : volume / 100}
+            onProgress={onProgress}
+            onDuration={onDuration}
+            onReady={onReady}
+            onPlay={onPlay}
+            onPause={onPause}
+            onEnded={onEnded}
+            onError={onError}
+            width="0"
+            height="0"
+            config={{
+              youtube: {
+                playerVars: { autoplay: 1, controls: 0 }
+              }
+            }}
+          />
+        )}
+      </div>
       {children}
     </PlayerContext.Provider>
   );

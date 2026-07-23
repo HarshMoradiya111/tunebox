@@ -1,6 +1,7 @@
 import Image from "next/image";
-import { Play, Heart, Clock, MoreHorizontal } from "lucide-react";
+import { Clock } from "lucide-react";
 import TrackRow from "@/components/TrackRow";
+import PlaylistActionBar from "./PlaylistActionBar";
 import { fetchPlaylist, ApiPlaylistDetail } from "@/lib/api";
 import { MOCK_TRACKS, MockTrack } from "@/lib/mockData";
 
@@ -84,17 +85,7 @@ export default async function PlaylistPage({ params }: PlaylistPageProps) {
       </div>
 
       {/* Action Bar Section */}
-      <div className="px-6 flex items-center gap-6">
-        <button className="w-14 h-14 rounded-full bg-[#1db954] hover:bg-[#1ed760] hover:scale-105 flex items-center justify-center text-black shadow-xl transition-all">
-          <Play className="w-6 h-6 fill-current translate-x-0.5" />
-        </button>
-        <button className="text-[#b3b3b3] hover:text-white transition-colors">
-          <Heart className="w-8 h-8" />
-        </button>
-        <button className="text-[#b3b3b3] hover:text-white transition-colors">
-          <MoreHorizontal className="w-8 h-8" />
-        </button>
-      </div>
+      <PlaylistActionBar tracks={tracks} />
 
       {/* Track Table Header */}
       <div className="px-6">
