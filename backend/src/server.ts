@@ -59,7 +59,7 @@ const startServer = async () => {
   // Connect to MongoDB
   await connectDB();
 
-  app.listen(config.port, () => {
+  app.listen(config.port, "0.0.0.0", () => {
     console.log(`
   🎵 Spotify Clone API Server
   ───────────────────────────
