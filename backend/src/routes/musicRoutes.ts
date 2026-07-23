@@ -104,39 +104,17 @@ router.post("/stream", async (req: Request, res: Response): Promise<any> => {
 
     // 2. Search YouTube programmatically
     const ytSearch = require("yt-search");
-    const youtubedl = require("youtube-dl-exec");
-
     let finalStreamUrl = null;
 
-    let ytErrorDebug = null;
     try {
       const searchResults = await ytSearch(searchQuery);
       if (searchResults && searchResults.videos && searchResults.videos.length > 0) {
-        const videoUrl = searchResults.videos[0].url;
-        
-        // Extract using youtube-dl-exec which handles signatures & IP blocks better
-        const output = await youtubedl(videoUrl, {
-          dumpSingleJson: true,
-          noCheckCertificates: true,
-          noWarnings: true,
-          preferFreeFormats: true,
-          addHeader: [
-            'referer:youtube.com',
-            'user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-          ]
-        });
-
-        const formats = output.formats || [];
-        const audioFormats = formats.filter((f: any) => f.vcodec === 'none' && f.acodec !== 'none');
-        
-        if (audioFormats.length > 0) {
-          audioFormats.sort((a: any, b: any) => (b.abr || 0) - (a.abr || 0));
-          finalStreamUrl = audioFormats[0].url;
-        }
+        // Return the raw YouTube URL instead of downloading via backend.
+        // The frontend will use react-player to play this directly, bypassing Render IP blocks.
+        finalStreamUrl = searchResults.videos[0].url;
       }
     } catch (ytError: any) {
-      console.warn("YouTube extraction failed with youtube-dl-exec:", ytError.message);
-      ytErrorDebug = ytError.message;
+      console.warn("YouTube search failed:", ytError.message);
     }
 
     // 3. Fallback to iTunes API if YouTube fails
@@ -158,8 +136,7 @@ router.post("/stream", async (req: Request, res: Response): Promise<any> => {
     return res.status(200).json({
       success: true,
       audioUrl: finalStreamUrl,
-      expiresIn: 'Temporary URL - Do not save to Database',
-      ytErrorDebug
+      expiresIn: 'Temporary URL - Do not save to Database'
     });
 
   } catch (error: any) {
