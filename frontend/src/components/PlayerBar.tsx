@@ -18,7 +18,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { usePlayer } from "@/store/playerStore";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 function formatTime(seconds: number): string {
   if (!seconds || isNaN(seconds)) return "0:00";
@@ -31,16 +31,15 @@ export default function PlayerBar() {
   const {
     currentTrack,
     isPlaying,
-    isLoading,
     currentTime,
     duration,
     volume,
     isMuted,
-    isShuffled,
-    repeatMode,
+    isLoading,
     togglePlay,
     nextTrack,
     prevTrack,
+    seek,
     seekPercent,
     setVolume,
     toggleMute,
@@ -52,6 +51,52 @@ export default function PlayerBar() {
 
   const [isLiked, setIsLiked] = useState(false);
   const [isDraggingSeek, setIsDraggingSeek] = useState(false);
+
+  // Global Keyboard Shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger shortcuts if user is typing in an input/textarea
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      if (e.code === "Space") {
+        e.preventDefault();
+        togglePlay();
+      } else if (e.code === "ArrowRight") {
+        e.preventDefault();
+        seek(Math.min(duration, currentTime + 5));
+      } else if (e.code === "ArrowLeft") {
+        e.preventDefault();
+        seek(Math.max(0, currentTime - 5));
+      } else if (e.code === "KeyM") {
+        e.preventDefault();
+        toggleMute();
+      } else if (e.code === "KeyS") {
+        e.preventDefault();
+        toggleShuffle();
+      } else if (e.code === "KeyR") {
+        e.preventDefault();
+        cycleRepeat();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    togglePlay,
+    seek,
+    currentTime,
+    duration,
+    toggleMute,
+    toggleShuffle,
+    cycleRepeat,
+  ]);
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
   const effectiveVolume = isMuted ? 0 : volume;
@@ -177,7 +222,7 @@ export default function PlayerBar() {
       </div>
 
       {/* Right: Volume & Utilities */}
-      <div className="flex items-center justify-end gap-3 w-1/4 text-[#b3b3b3]">
+      <div className="hidden sm:flex items-center justify-end gap-3 w-1/4 text-[#b3b3b3]">
         <button className="hover:text-white transition-colors p-1">
           <ListMusic className="w-4 h-4" />
         </button>
