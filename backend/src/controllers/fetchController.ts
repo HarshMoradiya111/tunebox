@@ -23,22 +23,13 @@ export async function fetchSong(
       return;
     }
 
-    // Check if song already exists and is ready
+    // Check if song already exists
     const existing = await Song.findOne({
       $or: [
         { spotifyTrackId: spotifyTrackId || "" },
         { title, artist },
       ],
     }).lean();
-
-    if (existing && existing.status === "ready") {
-      res.json({
-        success: true,
-        source: "cache",
-        data: existing,
-      });
-      return;
-    }
 
     // Create a new Song doc with "pending" status initially
     const songDoc = await Song.findOneAndUpdate(
@@ -94,13 +85,13 @@ export async function fetchSong(
       return;
     }
 
-    // Update Song doc to "ready"
+    // Update Song doc to "ready" but do NOT save the streamUrl
+    // (YouTube URLs expire in 6h, and iTunes fallbacks are 30s clips that shouldn't permanently poison the DB)
     const updatedSong = await Song.findOneAndUpdate(
       { _id: songDoc._id },
       {
         status: "ready",
-        streamUrl: finalStreamUrl,
-        duration: 0, // yt-stream doesn't always provide clean duration, player will handle it
+        duration: 0, 
         format: "stream",
       },
       { new: true }
@@ -109,7 +100,10 @@ export async function fetchSong(
     res.status(200).json({
       success: true,
       source: "fetched",
-      data: updatedSong,
+      data: {
+        ...updatedSong.toObject(),
+        streamUrl: finalStreamUrl // Attach the streamUrl only to the current response
+      },
     });
   } catch (error: any) {
     console.error("FetchSong error:", error.message);
