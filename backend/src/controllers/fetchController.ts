@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { Song } from "../models";
-import { searchAndDownload, getAudioDuration } from "../services/ytdlpService";
+import { searchAndDownload, getAudioDuration, isR2Configured, uploadToR2 } from "../services";
 import config from "../config";
 
 /**
@@ -92,8 +92,17 @@ export async function fetchSong(
           console.warn("⚠️ Could not extract audio duration:", e);
         }
 
-        // Build stream URL
-        const streamUrl = `/api/stream/${encodeURIComponent(result.filename)}`;
+        // Build stream URL & optional R2 upload
+        let streamUrl = `/api/stream/${encodeURIComponent(result.filename)}`;
+
+        if (isR2Configured()) {
+          try {
+            console.log(`☁️ Uploading "${result.filename}" to Cloudflare R2...`);
+            streamUrl = await uploadToR2(result.filePath, `tracks/${result.filename}`);
+          } catch (r2Err) {
+            console.warn("⚠️ R2 Upload failed, falling back to local streamUrl:", r2Err);
+          }
+        }
 
         // Update Song doc to "ready"
         await Song.updateOne(
