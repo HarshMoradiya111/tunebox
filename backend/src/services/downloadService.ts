@@ -87,7 +87,23 @@ export async function downloadAudio(
 
     return song;
   } catch (error: any) {
-    console.error(`Download failed for ${title}:`, error.message);
+    console.error(`Download failed for ${title} using yt-dlp:`, error.message);
+    
+    // iTunes fallback for cloud environments (Render/Vercel) where YouTube blocks IPs
+    try {
+      const axios = require("axios");
+      const itunesRes = await axios.get(`https://itunes.apple.com/search?term=${encodeURIComponent(title + " " + artist)}&entity=song&limit=1`);
+      if (itunesRes.data.resultCount > 0 && itunesRes.data.results[0].previewUrl) {
+        song.streamUrl = itunesRes.data.results[0].previewUrl;
+        song.format = "stream";
+        song.status = "ready";
+        await song.save();
+        return song;
+      }
+    } catch (itunesError: any) {
+      console.error("iTunes fallback also failed:", itunesError.message);
+    }
+
     song.status = "failed";
     song.errorMessage = error.message;
     await song.save();
