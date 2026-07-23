@@ -36,15 +36,15 @@ export async function getPlaylistById(
     // Upsert tracks
     const trackDocs = await Promise.all(
       spotifyPlaylist.tracks.items
-        .filter((item) => item.track !== null)
-        .map(async (item) => {
+        .filter((item: any) => item.track !== null)
+        .map(async (item: any) => {
           const t = item.track!;
           return Track.findOneAndUpdate(
             { spotifyId: t.id },
             {
               spotifyId: t.id,
               title: t.name,
-              artist: t.artists.map((a) => a.name).join(", "),
+              artist: t.artists.map((a: any) => a.name).join(", "),
               album: t.album.name,
               albumArt: t.album.images?.[0]?.url || "",
               duration: t.duration_ms,

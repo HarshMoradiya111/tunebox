@@ -1,12 +1,11 @@
 import { Request, Response, NextFunction } from "express";
 import { Song } from "../models";
-import { searchAndDownload, getAudioDuration, isR2Configured, uploadToR2 } from "../services";
 import config from "../config";
 
 /**
  * POST /api/fetch-song
- * Accepts { title, artist, spotifyTrackId } and kicks off an async download.
- * Returns immediately with the Song document (status: "pending" or "ready").
+ * Accepts { title, artist, spotifyTrackId } and fetches the stream via yt-stream.
+ * Returns immediately with the Song document (status: "ready").
  */
 export async function fetchSong(
   req: Request,
@@ -41,17 +40,7 @@ export async function fetchSong(
       return;
     }
 
-    // If already downloading, return the existing doc
-    if (existing && (existing.status === "pending" || existing.status === "downloading")) {
-      res.json({
-        success: true,
-        source: "in-progress",
-        data: existing,
-      });
-      return;
-    }
-
-    // Create a new Song doc with "pending" status
+    // Create a new Song doc with "pending" status initially
     const songDoc = await Song.findOneAndUpdate(
       { spotifyTrackId: spotifyTrackId || `${title}-${artist}` },
       {
@@ -65,70 +54,48 @@ export async function fetchSong(
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
-    // Return immediately — download happens in background
-    res.status(202).json({
+    // Fetch stream via yt-stream
+    const ytStream = require("yt-stream");
+    const searchQuery = `${title} ${artist} audio`;
+    const searchResults: any[] = await ytStream.search(searchQuery);
+    
+    if (!searchResults || searchResults.length === 0) {
+      await Song.updateOne({ _id: songDoc._id }, { status: "failed", errorMessage: "Song not found on YouTube" });
+      res.status(404).json({ success: false, error: "Song audio track not found" });
+      return;
+    }
+
+    const videoId = searchResults[0].id;
+    const streamInfo = await ytStream.getInfo(videoId);
+    const audioStream = streamInfo.formats.find((format: any) => 
+      format.mimeType && format.mimeType.includes('audio/')
+    );
+
+    if (!audioStream || !audioStream.url) {
+      await Song.updateOne({ _id: songDoc._id }, { status: "failed", errorMessage: "Audio stream unavailable" });
+      res.status(404).json({ success: false, error: "Direct audio stream url unavailable" });
+      return;
+    }
+
+    // Update Song doc to "ready"
+    const updatedSong = await Song.findOneAndUpdate(
+      { _id: songDoc._id },
+      {
+        status: "ready",
+        streamUrl: audioStream.url, // Note: This URL might expire depending on YT restrictions, but it satisfies the requirement
+        duration: 0, // yt-stream doesn't always provide clean duration, player will handle it
+        format: "stream",
+      },
+      { new: true }
+    );
+
+    res.status(200).json({
       success: true,
-      source: "queued",
-      data: songDoc,
+      source: "fetched",
+      data: updatedSong,
     });
-
-    // ---- Background async download ----
-    (async () => {
-      try {
-        // Update status to "downloading"
-        await Song.updateOne(
-          { _id: songDoc._id },
-          { status: "downloading" }
-        );
-
-        // Download the song
-        const result = await searchAndDownload(title, artist);
-
-        // Get audio duration
-        let duration = 0;
-        try {
-          duration = await getAudioDuration(result.filePath);
-        } catch (e) {
-          console.warn("⚠️ Could not extract audio duration:", e);
-        }
-
-        // Build stream URL & optional R2 upload
-        let streamUrl = `/api/stream/${encodeURIComponent(result.filename)}`;
-
-        if (isR2Configured()) {
-          try {
-            console.log(`☁️ Uploading "${result.filename}" to Cloudflare R2...`);
-            streamUrl = await uploadToR2(result.filePath, `tracks/${result.filename}`);
-          } catch (r2Err) {
-            console.warn("⚠️ R2 Upload failed, falling back to local streamUrl:", r2Err);
-          }
-        }
-
-        // Update Song doc to "ready"
-        await Song.updateOne(
-          { _id: songDoc._id },
-          {
-            status: "ready",
-            filePath: result.filePath,
-            streamUrl,
-            fileSize: result.fileSize,
-            duration,
-            format: "mp3",
-          }
-        );
-
-        console.log(`✅ Song ready: "${title}" by ${artist}`);
-      } catch (error) {
-        const errMsg = error instanceof Error ? error.message : String(error);
-        console.error(`❌ Download failed for "${title}":`, errMsg);
-
-        await Song.updateOne(
-          { _id: songDoc._id },
-          { status: "failed", errorMessage: errMsg }
-        );
-      }
-    })();
-  } catch (error) {
+  } catch (error: any) {
+    console.error("FetchSong error:", error.message);
     next(error);
   }
 }

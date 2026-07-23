@@ -36,7 +36,7 @@ export async function featuredPlaylists(
 
     // Upsert into MongoDB
     const saved = await Promise.all(
-      spotifyPlaylists.map(async (sp) => {
+      spotifyPlaylists.map(async (sp: any) => {
         return Playlist.findOneAndUpdate(
           { spotifyId: sp.id },
           {
@@ -71,10 +71,10 @@ export async function newReleases(
   try {
     const albums = await getNewReleases();
 
-    const formatted = albums.map((album) => ({
+    const formatted = albums.map((album: any) => ({
       spotifyId: album.id,
       name: album.name,
-      artist: album.artists.map((a) => a.name).join(", "),
+      artist: album.artists.map((a: any) => a.name).join(", "),
       coverImage: album.images?.[0]?.url || "",
       releaseDate: album.release_date,
       albumType: album.album_type,
