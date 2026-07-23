@@ -122,7 +122,7 @@ export default function Sidebar() {
               <Link
                 key={pl.id}
                 href={`/playlist/${pl.id}`}
-                className="px-2 py-1.5 rounded text-sm text-[#b3b3b3] hover:text-white hover:bg-[#1a1a1a] truncate transition-colors shrink-0"
+                className="block px-2 py-1.5 rounded text-sm text-[#b3b3b3] hover:text-white hover:bg-[#1a1a1a] truncate transition-colors shrink-0"
               >
                 {pl.name}
               </Link>

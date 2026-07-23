@@ -416,7 +416,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const Player = ReactPlayer as any;
 
   const currentStreamUrl = currentTrack?.streamUrl 
-    ? (currentTrack.streamUrl.startsWith("http") ? currentTrack.streamUrl : `${API_BASE}${currentTrack.streamUrl}`) 
+    ? (currentTrack.streamUrl.startsWith("http") 
+        ? currentTrack.streamUrl 
+        : (currentTrack.streamUrl.startsWith("/api/") && API_BASE.endsWith("/api")
+            ? `${API_BASE.replace(/\/api$/, "")}${currentTrack.streamUrl}`
+            : `${API_BASE.replace(/\/$/, "")}${currentTrack.streamUrl.startsWith("/") ? "" : "/"}${currentTrack.streamUrl}`
+          )
+      ) 
     : undefined;
 
   const [mounted, setMounted] = useState(false);
