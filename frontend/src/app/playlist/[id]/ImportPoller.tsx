@@ -50,8 +50,7 @@ export default function ImportPoller({
     return () => clearInterval(interval);
   }, [playlistId, status, imported, router]);
 
-  if (status !== "importing") return null;
-
+  if (status !== "importing" || (total > 0 && imported >= total)) return null;
   return (
     <div className="bg-indigo-600 text-white px-6 py-4 mx-6 rounded-md flex items-center gap-3">
       <svg

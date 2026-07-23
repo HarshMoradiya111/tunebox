@@ -6,6 +6,7 @@ import { useState } from "react";
 
 export default function PlaylistActionBar({ tracks, playlistInfo }: { tracks: PlayerTrack[], playlistInfo?: { id: string, name: string } }) {
   const { playQueue, isPlaying, currentTrack, pause, resume, savedPlaylists, toggleSavedPlaylist } = usePlayer();
+  const [showMenu, setShowMenu] = useState(false);
   
   const isLiked = playlistInfo ? savedPlaylists.some(p => p.id === playlistInfo.id) : false;
 
@@ -48,9 +49,28 @@ export default function PlaylistActionBar({ tracks, playlistInfo }: { tracks: Pl
       >
         <Heart className={`w-8 h-8 ${isLiked ? "fill-current" : ""}`} />
       </button>
-      <button className="text-[#b3b3b3] hover:text-white transition-colors">
-        <MoreHorizontal className="w-8 h-8" />
-      </button>
+      <div className="relative">
+        <button 
+          onClick={() => setShowMenu(!showMenu)}
+          className="text-[#b3b3b3] hover:text-white transition-colors"
+        >
+          <MoreHorizontal className="w-8 h-8" />
+        </button>
+        {showMenu && (
+          <div className="absolute left-0 top-full mt-2 w-48 bg-[#282828] rounded shadow-2xl p-1 z-50">
+            <button 
+              className="w-full text-left px-4 py-2.5 text-sm text-[#e5e5e5] hover:bg-[#3e3e3e] hover:text-white rounded transition-colors"
+              onClick={() => {
+                navigator.clipboard.writeText(window.location.href);
+                setShowMenu(false);
+                alert("Link copied to clipboard!");
+              }}
+            >
+              Share (Copy Link)
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

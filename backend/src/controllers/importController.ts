@@ -55,7 +55,7 @@ export const importPlaylist = async (req: Request, res: Response): Promise<void>
       coverImage: preview.image || "",
       owner: "Imported",
       tracks: [],
-      totalTracks: 0,
+      totalTracks: tracks.length || 0,
       isPublic: true,
       importStatus: "importing"
     });
@@ -107,7 +107,6 @@ export const importPlaylist = async (req: Request, res: Response): Promise<void>
 
             newPlaylist.tracks.push(existingTrack._id);
             savedTracksCount++;
-            newPlaylist.totalTracks = savedTracksCount;
             await newPlaylist.save();
           }
         }
