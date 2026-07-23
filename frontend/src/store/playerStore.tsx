@@ -137,13 +137,33 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             }
 
             // Update the track in the queue so replays are instant
-            setQueue((prevQueue) =>
-              prevQueue.map((t) =>
+            setQueue((prevQueue) => {
+              const newQueue = prevQueue.map((t) =>
                 (t.id === track.id || t.spotifyId === track.spotifyId)
                   ? { ...t, streamUrl: result.streamUrl }
                   : t
-              )
-            );
+              );
+              
+              // Prefetch the NEXT track silently
+              const nextIdx = newQueue.findIndex(t => t.id === track.id || t.spotifyId === track.spotifyId) + 1;
+              if (nextIdx > 0 && nextIdx < newQueue.length) {
+                const nextTrack = newQueue[nextIdx];
+                if (!nextTrack.streamUrl) {
+                  resolveTrackStream({
+                    title: nextTrack.title,
+                    artist: nextTrack.artist,
+                    spotifyTrackId: nextTrack.spotifyId,
+                    album: nextTrack.album,
+                    albumArt: nextTrack.albumArt,
+                  }).then((prefetchedResult) => {
+                    if (prefetchedResult) {
+                      setQueue(q => q.map((t, i) => i === nextIdx ? { ...t, streamUrl: prefetchedResult.streamUrl } : t));
+                    }
+                  }).catch(() => {});
+                }
+              }
+              return newQueue;
+            });
           } else {
             // Download failed
             setIsLoading(false);
