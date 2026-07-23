@@ -57,22 +57,40 @@ export async function fetchSong(
     // Fetch stream via yt-search and ytdl-core
     const ytSearch = require("yt-search");
     const ytdl = require("@distube/ytdl-core");
+    const axios = require("axios");
     const searchQuery = `${title} ${artist} audio`;
-    const searchResults = await ytSearch(searchQuery);
     
-    if (!searchResults || !searchResults.videos || searchResults.videos.length === 0) {
-      await Song.updateOne({ _id: songDoc._id }, { status: "failed", errorMessage: "Song not found on YouTube" });
-      res.status(404).json({ success: false, error: "Song audio track not found" });
-      return;
+    let finalStreamUrl = null;
+
+    try {
+      const searchResults = await ytSearch(searchQuery);
+      if (searchResults && searchResults.videos && searchResults.videos.length > 0) {
+        const videoUrl = searchResults.videos[0].url;
+        const streamInfo = await ytdl.getInfo(videoUrl);
+        const audioStream = ytdl.chooseFormat(streamInfo.formats, { quality: "highestaudio" });
+        if (audioStream && audioStream.url) {
+          finalStreamUrl = audioStream.url;
+        }
+      }
+    } catch (ytError) {
+      console.warn("YouTube extraction failed in fetchController. Falling back to iTunes preview...");
     }
 
-    const videoUrl = searchResults.videos[0].url;
-    const streamInfo = await ytdl.getInfo(videoUrl);
-    const audioStream = ytdl.chooseFormat(streamInfo.formats, { quality: "highestaudio" });
+    // Fallback to iTunes API if YouTube fails
+    if (!finalStreamUrl) {
+      try {
+        const itunesRes = await axios.get(`https://itunes.apple.com/search?term=${encodeURIComponent(title + " " + artist)}&entity=song&limit=1`);
+        if (itunesRes.data.resultCount > 0 && itunesRes.data.results[0].previewUrl) {
+          finalStreamUrl = itunesRes.data.results[0].previewUrl;
+        }
+      } catch (itunesError) {
+        console.error("iTunes fallback failed:", itunesError);
+      }
+    }
 
-    if (!audioStream || !audioStream.url) {
+    if (!finalStreamUrl) {
       await Song.updateOne({ _id: songDoc._id }, { status: "failed", errorMessage: "Audio stream unavailable" });
-      res.status(404).json({ success: false, error: "Direct audio stream url unavailable" });
+      res.status(404).json({ success: false, error: "Song audio track not found" });
       return;
     }
 
@@ -81,7 +99,7 @@ export async function fetchSong(
       { _id: songDoc._id },
       {
         status: "ready",
-        streamUrl: audioStream.url, // Note: This URL might expire depending on YT restrictions, but it satisfies the requirement
+        streamUrl: finalStreamUrl,
         duration: 0, // yt-stream doesn't always provide clean duration, player will handle it
         format: "stream",
       },

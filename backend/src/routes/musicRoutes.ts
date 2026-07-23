@@ -104,30 +104,44 @@ router.post("/stream", async (req: Request, res: Response): Promise<any> => {
     // 2. Search YouTube programmatically
     const ytSearch = require("yt-search");
     const ytdl = require("@distube/ytdl-core");
-    const searchResults = await ytSearch(searchQuery);
-    
-    if (!searchResults || !searchResults.videos || searchResults.videos.length === 0) {
-      return res.status(404).json({ success: false, message: 'Song audio track not found' });
+    const axios = require("axios");
+
+    let finalStreamUrl = null;
+
+    try {
+      const searchResults = await ytSearch(searchQuery);
+      if (searchResults && searchResults.videos && searchResults.videos.length > 0) {
+        const videoUrl = searchResults.videos[0].url;
+        const streamInfo = await ytdl.getInfo(videoUrl);
+        const audioStream = ytdl.chooseFormat(streamInfo.formats, { quality: "highestaudio" });
+        if (audioStream && audioStream.url) {
+          finalStreamUrl = audioStream.url;
+        }
+      }
+    } catch (ytError) {
+      console.warn("YouTube extraction failed (likely IP blocked on Render). Falling back to iTunes preview...");
     }
 
-    // Grab the first video result URL
-    const videoUrl = searchResults.videos[0].url;
-
-    // 3. Extract the direct raw audio formats
-    const streamInfo = await ytdl.getInfo(videoUrl);
-    
-    // Filter out video tracks to find the lightweight .mp4/.webm audio stream URL
-    const audioStream = ytdl.chooseFormat(streamInfo.formats, { quality: "highestaudio" });
-
-    if (!audioStream || !audioStream.url) {
-      return res.status(404).json({ success: false, message: 'Direct audio stream url unavailable' });
+    // 3. Fallback to iTunes API if YouTube fails
+    if (!finalStreamUrl) {
+      try {
+        const itunesRes = await axios.get(`https://itunes.apple.com/search?term=${encodeURIComponent(title + " " + artist)}&entity=song&limit=1`);
+        if (itunesRes.data.resultCount > 0 && itunesRes.data.results[0].previewUrl) {
+          finalStreamUrl = itunesRes.data.results[0].previewUrl;
+        }
+      } catch (itunesError) {
+        console.error("iTunes fallback failed:", itunesError);
+      }
     }
 
-    // 4. Return the temporary playable URL directly to the frontend player
-    res.json({ 
-      success: true, 
-      audioUrl: audioStream.url,
-      expiresIn: 'Temporary URL - Do not save to Database' 
+    if (!finalStreamUrl) {
+      return res.status(404).json({ success: false, message: 'Audio stream unavailable' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      audioUrl: finalStreamUrl,
+      expiresIn: 'Temporary URL - Do not save to Database'
     });
 
   } catch (error: any) {
