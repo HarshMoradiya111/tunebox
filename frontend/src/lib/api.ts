@@ -110,6 +110,21 @@ export async function fetchCategories(): Promise<ApiCategory[]> {
   return res.data;
 }
 
+export interface ApiSearchResult {
+  id: string;
+  title: string;
+  artist: string;
+  coverArtUrl: string;
+}
+
+/** Search music via backend /api/search */
+export async function searchMusic(query: string): Promise<ApiSearchResult[]> {
+  const res = await apiFetch<ApiResponse<ApiSearchResult[]>>(
+    `/search?q=${encodeURIComponent(query)}`
+  );
+  return res.data;
+}
+
 /** Fetch a playlist with tracks by Spotify ID */
 export async function fetchPlaylist(
   spotifyId: string

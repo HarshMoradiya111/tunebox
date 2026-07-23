@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, Search, User } from "lucide-react";
 
@@ -7,6 +8,14 @@ export default function Header() {
   const router = useRouter();
   const pathname = usePathname();
   const isSearchPage = pathname === "/search";
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
 
   return (
     <header className="h-16 px-6 bg-[#121212]/90 backdrop-blur-md sticky top-0 z-40 flex items-center justify-between gap-4">
@@ -30,14 +39,16 @@ export default function Header() {
 
       {/* Conditional Search Bar */}
       {isSearchPage && (
-        <div className="flex-1 max-w-md relative">
+        <form onSubmit={handleSearchSubmit} className="flex-1 max-w-md relative">
           <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-[#b3b3b3]" />
           <input
             type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="What do you want to play?"
             className="w-full bg-[#242424] hover:bg-[#2a2a2a] focus:bg-[#2a2a2a] text-white text-sm rounded-full pl-10 pr-4 py-2.5 outline-none border border-transparent focus:border-white/30 transition-all placeholder:text-[#727272]"
           />
-        </div>
+        </form>
       )}
 
       {/* User Profile Pill */}

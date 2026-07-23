@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { fetchCategories, ApiCategory } from "@/lib/api";
+import { fetchCategories, ApiCategory, searchMusic, ApiSearchResult } from "@/lib/api";
 import { MOCK_GENRES, MockGenre } from "@/lib/mockData";
 
 // Vibrant gradient colors for categories
@@ -28,7 +28,57 @@ const GRADIENT_COLORS = [
 
 export const dynamic = "force-dynamic";
 
-export default async function SearchPage() {
+export default async function SearchPage({
+  searchParams,
+}: {
+  searchParams: { q?: string };
+}) {
+  const query = searchParams?.q;
+
+  if (query) {
+    let results: ApiSearchResult[] = [];
+    try {
+      results = await searchMusic(query);
+    } catch (e) {
+      console.error(e);
+    }
+
+    return (
+      <div className="flex flex-col gap-6 select-none">
+        <h1 className="text-2xl font-bold text-white tracking-tight">
+          Search results for &quot;{query}&quot;
+        </h1>
+        {results.length === 0 ? (
+          <p className="text-[#a7a7a7]">No results found.</p>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+            {results.map((track) => (
+              <div
+                key={track.id}
+                className="bg-[#181818] hover:bg-[#282828] transition-colors rounded-xl p-4 cursor-pointer group flex flex-col gap-4 relative"
+              >
+                <div className="w-full aspect-square relative shadow-lg rounded-md overflow-hidden bg-[#282828]">
+                  {track.coverArtUrl ? (
+                    <Image src={track.coverArtUrl} alt={track.title} fill className="object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-[#555]">No Art</div>
+                  )}
+                  <div className="absolute bottom-2 right-2 w-12 h-12 bg-[#1ed760] rounded-full flex items-center justify-center shadow-xl opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 hover:scale-105 hover:bg-[#3be477]">
+                    <svg role="img" height="24" width="24" aria-hidden="true" viewBox="0 0 24 24" fill="black"><path d="m7.05 3.606 13.49 7.788a.7.7 0 0 1 0 1.212L7.05 20.394A.7.7 0 0 1 6 19.788V4.212a.7.7 0 0 1 1.05-.606z"></path></svg>
+                  </div>
+                </div>
+                <div className="flex flex-col">
+                  <h3 className="text-white font-bold truncate">{track.title}</h3>
+                  <p className="text-sm text-[#a7a7a7] truncate">{track.artist}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   let genres: MockGenre[];
 
   try {
