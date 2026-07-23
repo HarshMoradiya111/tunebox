@@ -1,5 +1,7 @@
 import { Router, Request, Response } from "express";
 import axios from "axios";
+// @ts-ignore
+import ytStream from "yt-stream";
 
 const router = Router();
 
@@ -42,6 +44,56 @@ router.get("/homepage", async (req: Request, res: Response) => {
     res
       .status(500)
       .json({ success: false, message: "Failed to fetch homepage data" });
+  }
+});
+
+interface StreamRequest {
+  title: string;
+  artist: string;
+}
+
+router.post("/stream", async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { title, artist } = req.body as StreamRequest;
+
+    if (!title || !artist) {
+      return res.status(400).json({ success: false, message: 'Title and artist are required' });
+    }
+
+    // 1. Construct a clean search query to get the best audio track match
+    const searchQuery = `${title} ${artist} audio`;
+
+    // 2. Search YouTube programmatically
+    const searchResults = await ytStream.search(searchQuery);
+    if (!searchResults || searchResults.length === 0) {
+      return res.status(404).json({ success: false, message: 'Song audio track not found' });
+    }
+
+    // Grab the first video result ID
+    const videoId = searchResults[0].id;
+
+    // 3. Extract the direct raw audio formats
+    const streamInfo = await ytStream.getInfo(videoId);
+    
+    // Filter out video tracks to find the lightweight .mp4/.webm audio stream URL
+    const audioStream = streamInfo.formats.find((format: any) => 
+      format.mimeType && format.mimeType.includes('audio/')
+    );
+
+    if (!audioStream || !audioStream.url) {
+      return res.status(404).json({ success: false, message: 'Direct audio stream url unavailable' });
+    }
+
+    // 4. Return the temporary playable URL directly to the frontend player
+    res.json({ 
+      success: true, 
+      audioUrl: audioStream.url,
+      expiresIn: 'Temporary URL - Do not save to Database' 
+    });
+
+  } catch (error: any) {
+    console.error('Streaming Error:', error.message);
+    res.status(500).json({ success: false, message: 'Failed to extract audio track' });
   }
 });
 
