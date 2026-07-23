@@ -108,6 +108,7 @@ router.post("/stream", async (req: Request, res: Response): Promise<any> => {
 
     let finalStreamUrl = null;
 
+    let ytErrorDebug = null;
     try {
       const searchResults = await ytSearch(searchQuery);
       if (searchResults && searchResults.videos && searchResults.videos.length > 0) {
@@ -135,6 +136,7 @@ router.post("/stream", async (req: Request, res: Response): Promise<any> => {
       }
     } catch (ytError: any) {
       console.warn("YouTube extraction failed with youtube-dl-exec:", ytError.message);
+      ytErrorDebug = ytError.message;
     }
 
     // 3. Fallback to iTunes API if YouTube fails
@@ -156,7 +158,8 @@ router.post("/stream", async (req: Request, res: Response): Promise<any> => {
     return res.status(200).json({
       success: true,
       audioUrl: finalStreamUrl,
-      expiresIn: 'Temporary URL - Do not save to Database'
+      expiresIn: 'Temporary URL - Do not save to Database',
+      ytErrorDebug
     });
 
   } catch (error: any) {
