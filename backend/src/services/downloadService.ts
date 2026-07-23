@@ -62,13 +62,19 @@ export async function downloadAudio(
       fs.unlinkSync(filePath);
     }
 
-    await youtubedl(videoUrl, {
+    const ytdlOptions: any = {
       // Use format selection instead of extractAudio to avoid ffmpeg dependency
       format: "bestaudio[ext=m4a]/bestaudio",
       output: filePath,
       noWarnings: true,
       addHeader: ["referer:youtube.com", "user-agent:Mozilla/5.0"],
-    });
+    };
+
+    if (config.youtubeProxy) {
+      ytdlOptions.proxy = config.youtubeProxy;
+    }
+
+    await youtubedl(videoUrl, ytdlOptions);
 
     // 4. Verify file exists
     if (!fs.existsSync(filePath)) {

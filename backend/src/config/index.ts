@@ -23,6 +23,9 @@ const config = {
       "http://localhost:5000/api/auth/callback",
   },
 
+  // YouTube Download Proxy (to avoid 429 Too Many Requests on cloud IPs)
+  youtubeProxy: process.env.YOUTUBE_PROXY || "",
+
   // Cloudflare R2 (Phase 9)
   r2: {
     accountId: process.env.R2_ACCOUNT_ID || "",
