@@ -401,12 +401,19 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     playerRef,
   };
 
-  const currentStreamUrl = currentTrack?.streamUrl 
-    ? (currentTrack.streamUrl.startsWith("http") 
-        ? currentTrack.streamUrl 
-        : (currentTrack.streamUrl.startsWith("/api/") && process.env.NEXT_PUBLIC_API_URL?.endsWith("/api")
-            ? `${process.env.NEXT_PUBLIC_API_URL.replace(/\/api$/, "")}${currentTrack.streamUrl}`
-            : `${(process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000").replace(/\/$/, "")}${currentTrack.streamUrl.startsWith("/") ? "" : "/"}${currentTrack.streamUrl}`
+  let rawStreamUrl = currentTrack?.streamUrl;
+  
+  // Rewrite hardcoded localhost URLs to the deployed API URL (fixes Mixed Content in production)
+  if (rawStreamUrl && rawStreamUrl.startsWith("http://localhost:5000/api") && process.env.NEXT_PUBLIC_API_URL) {
+    rawStreamUrl = rawStreamUrl.replace("http://localhost:5000/api", process.env.NEXT_PUBLIC_API_URL);
+  }
+
+  const currentStreamUrl = rawStreamUrl 
+    ? (rawStreamUrl.startsWith("http") 
+        ? rawStreamUrl 
+        : (rawStreamUrl.startsWith("/api/") && process.env.NEXT_PUBLIC_API_URL?.endsWith("/api")
+            ? `${process.env.NEXT_PUBLIC_API_URL.replace(/\/api$/, "")}${rawStreamUrl}`
+            : `${(process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000").replace(/\/$/, "")}${rawStreamUrl.startsWith("/") ? "" : "/"}${rawStreamUrl}`
           )
       ) 
     : undefined;

@@ -9,6 +9,14 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
+        hostname: "coverartarchive.org",
+      },
+      {
+        protocol: "http",
+        hostname: "coverartarchive.org",
+      },
+      {
+        protocol: "https",
         hostname: "i.scdn.co",
       },
       {
