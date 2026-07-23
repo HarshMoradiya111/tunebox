@@ -46,16 +46,15 @@ export async function fetchSong(
     );
 
     // Use the reliable downloadService with yt-dlp instead of ytdl-core
-    const { processDownload } = require("../services/downloadService");
-    const newSong = await processDownload({
-      track: {
-        id: spotifyTrackId || `${title}-${artist}`,
-        name: title,
-        artists: [{ name: artist }],
-        album: { name: req.body.album || "", images: [{ url: req.body.albumArt || "" }] },
-        duration_ms: 0
-      }
-    });
+    const { downloadAudio } = require("../services/downloadService");
+    const newSong = await downloadAudio(
+      title,
+      artist,
+      spotifyTrackId || `${title}-${artist}`,
+      0, // durationMs
+      req.body.album || "",
+      req.body.albumArt || ""
+    );
 
     if (!newSong || !newSong.streamUrl) {
       await Song.updateOne({ _id: songDoc._id }, { status: "failed", errorMessage: "Audio stream unavailable" });
