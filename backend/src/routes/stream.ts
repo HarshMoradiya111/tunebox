@@ -3,13 +3,16 @@ import path from "path";
 import fs from "fs";
 import config from "../config";
 
+import { Song } from "../models";
+import { downloadAudio } from "../services/downloadService";
+
 const router = Router();
 
 /**
  * GET /api/stream/:filename
  * Streams an audio file with HTTP Range request support for seeking.
  */
-router.get("/:filename", (req: Request, res: Response, next: NextFunction) => {
+router.get("/:filename", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const filename = decodeURIComponent(req.params.filename as string);
 
@@ -17,10 +20,36 @@ router.get("/:filename", (req: Request, res: Response, next: NextFunction) => {
     const safeName = path.basename(filename);
     const filePath = path.join(config.libraryPath, safeName);
 
-    // Check file exists
+    // Check file exists, if not, try to auto-redownload (fixes Render ephemeral storage wipe)
     if (!fs.existsSync(filePath)) {
-      res.status(404).json({ success: false, error: "File not found" });
-      return;
+      try {
+        const parts = safeName.replace(".m4a", "").split("-");
+        const spotifyTrackId = parts[parts.length - 1];
+        
+        const song = await Song.findOne({ spotifyTrackId });
+        if (song) {
+          console.log(`[Stream] File missing for ${song.title}. Auto-redownloading...`);
+          // Temporarily set status to bypass the "already downloaded" check
+          song.status = "downloading";
+          await song.save();
+          
+          await downloadAudio(
+            song.title,
+            song.artist,
+            song.spotifyTrackId,
+            song.duration * 1000,
+            song.album || "",
+            song.albumArt || ""
+          );
+        } else {
+          res.status(404).json({ success: false, error: "File not found and song not in DB" });
+          return;
+        }
+      } catch (err) {
+        console.error("Failed to auto-redownload:", err);
+        res.status(404).json({ success: false, error: "File not found" });
+        return;
+      }
     }
 
     const stat = fs.statSync(filePath);
