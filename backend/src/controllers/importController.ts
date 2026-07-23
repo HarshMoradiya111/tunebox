@@ -27,7 +27,15 @@ export const importPlaylist = async (req: Request, res: Response): Promise<void>
     }
 
     // Fetch playlist details from Spotify
-    const details = await getDetails(url);
+    let details;
+    try {
+      details = await getDetails(url);
+    } catch (scrapingErr: any) {
+      console.error("spotify-url-info getDetails failed:", scrapingErr.message, scrapingErr.stack);
+      res.status(502).json({ success: false, message: `Scraping failed: ${scrapingErr.message}` });
+      return;
+    }
+
     if (!details || !details.preview) {
       res.status(404).json({ success: false, message: "Could not fetch playlist details from Spotify." });
       return;
@@ -102,15 +110,15 @@ export const importPlaylist = async (req: Request, res: Response): Promise<void>
 
         newPlaylist.importStatus = "completed";
         await newPlaylist.save();
-      } catch (err) {
-        console.error("Background import failed:", err);
+      } catch (err: any) {
+        console.error("Background import failed:", err.message, err.stack);
         newPlaylist.importStatus = "failed";
         await newPlaylist.save();
       }
     })();
 
-  } catch (error: any) {
-    console.error("Import Playlist Error:", error);
-    res.status(500).json({ success: false, message: error.message || "Failed to import playlist" });
+  } catch (err: any) {
+    console.error("Playlist import error:", err.message, err.stack);
+    res.status(500).json({ success: false, message: err.message || "Failed to import playlist" });
   }
 };
