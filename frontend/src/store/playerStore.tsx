@@ -173,17 +173,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   );
 
   // --- Audio event handlers ---
-  const onProgress = (state: any) => {
-    setCurrentTime(state.playedSeconds);
-  };
-  
-  const onDuration = (duration: number) => {
-    setDuration(duration);
-  };
-  
-  const onReady = () => setIsLoading(false);
-  const onPlay = () => setIsPlaying(true);
-  const onPause = () => setIsPlaying(false);
   
   const onEnded = () => {
     // Auto-advance logic
