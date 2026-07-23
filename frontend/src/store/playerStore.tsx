@@ -449,6 +449,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           <audio
             ref={playerRef}
             src={currentStreamUrl}
+            crossOrigin="anonymous"
             onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
             onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
             onCanPlay={() => setIsLoading(false)}
