@@ -5,3 +5,4 @@ export {
   getNewReleases,
   getCategories,
 } from "./spotifyApi";
+export { searchAndDownload, getAudioDuration } from "./ytdlpService";
