@@ -49,7 +49,7 @@ export async function fetchSong(
     const ytSearch = require("yt-search");
     const ytdl = require("@distube/ytdl-core");
     const axios = require("axios");
-    const searchQuery = `${title} ${artist} audio`;
+    const searchQuery = `${title} ${artist} lyrics audio`;
     
     let finalStreamUrl = null;
 

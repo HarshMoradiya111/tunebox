@@ -52,7 +52,7 @@ export const importPlaylist = async (req: Request, res: Response): Promise<void>
           artist: t.artist || "Unknown Artist",
           album: "Spotify Import",
           albumArt: preview.image || "",
-          duration: t.duration ? Math.floor(t.duration / 1000) : 0,
+          duration: t.duration_ms || t.duration || 0,
         });
         await existingTrack.save();
       }

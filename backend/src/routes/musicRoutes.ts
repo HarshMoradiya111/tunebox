@@ -100,7 +100,9 @@ router.post("/stream", async (req: Request, res: Response): Promise<any> => {
     }
 
     // 1. Construct a clean search query to get the best audio track match
-    const searchQuery = `${title} ${artist} audio`;
+    // Appending 'lyrics' strongly biases the search towards fan-made lyric videos
+    // which rarely have iframe embedding disabled, unlike official Vevo music videos.
+    const searchQuery = `${title} ${artist} lyrics audio`;
 
     // 2. Search YouTube programmatically
     const ytSearch = require("yt-search");
