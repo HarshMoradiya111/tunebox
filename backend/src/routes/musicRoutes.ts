@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import axios from "axios";
 // @ts-ignore
 import ytStream from "yt-stream";
+import { importPlaylist } from "../controllers/importController";
 
 const router = Router();
 
@@ -149,5 +150,7 @@ router.post("/stream", async (req: Request, res: Response): Promise<any> => {
     res.status(500).json({ success: false, message: 'Failed to extract audio track' });
   }
 });
+
+router.post("/playlist/import", importPlaylist);
 
 export default router;
