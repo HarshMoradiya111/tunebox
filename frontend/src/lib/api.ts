@@ -184,9 +184,7 @@ export async function fetchSongStatusApi(
 
 /**
  * Resolve a track to a streamable URL.
- * - If already cached → returns streamUrl immediately.
- * - If not → triggers download and polls until ready.
- * @returns The stream URL, or null if the download failed.
+ * Uses the new /api/stream endpoint (yt-stream) instead of yt-dlp
  */
 export async function resolveTrackStream(params: {
   title: string;
@@ -195,47 +193,22 @@ export async function resolveTrackStream(params: {
   album?: string;
   albumArt?: string;
 }): Promise<{ streamUrl: string; duration: number } | null> {
-  const res = await fetchSongApi(params);
+  try {
+    const res = await apiFetch<{ success: boolean; audioUrl: string }>("/stream", {
+      method: "POST",
+      body: JSON.stringify({
+        title: params.title,
+        artist: params.artist,
+      }),
+    });
 
-  // Already ready — return immediately
-  if (res.data.status === "ready" && res.data.streamUrl) {
-    return { streamUrl: res.data.streamUrl, duration: res.data.duration };
-  }
-
-  // Failed
-  if (res.data.status === "failed") {
-    console.error("Song fetch failed:", res.data.errorMessage);
+    if (res.success && res.audioUrl) {
+      return { streamUrl: res.audioUrl, duration: 0 }; // Duration loads natively in HTML audio
+    }
+    
+    return null;
+  } catch (error) {
+    console.error("Failed to resolve stream:", error);
     return null;
   }
-
-  // Pending or downloading — poll until ready
-  const songId = res.data._id;
-  const maxAttempts = 60; // 60 × 2s = 2 minute max wait
-  const pollInterval = 2000;
-
-  for (let i = 0; i < maxAttempts; i++) {
-    await new Promise((resolve) => setTimeout(resolve, pollInterval));
-
-    try {
-      const status = await fetchSongStatusApi(songId);
-
-      if (status.data.status === "ready" && status.data.streamUrl) {
-        return {
-          streamUrl: status.data.streamUrl,
-          duration: status.data.duration,
-        };
-      }
-
-      if (status.data.status === "failed") {
-        console.error("Song download failed:", status.data.errorMessage);
-        return null;
-      }
-    } catch {
-      // Network error during poll — continue trying
-      console.warn("Poll attempt failed, retrying...");
-    }
-  }
-
-  console.error("Song download timed out");
-  return null;
 }
