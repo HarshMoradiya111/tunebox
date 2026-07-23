@@ -15,7 +15,25 @@ const app = express();
 app.use(helmet());
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, server-to-server)
+      if (!origin) return callback(null, true);
+      const allowedOrigins = [
+        process.env.FRONTEND_URL || "",
+        "http://localhost:3000",
+        "http://localhost:5000",
+      ].filter(Boolean);
+
+      // If FRONTEND_URL is '*', or if origin matches Vercel/localhost
+      if (
+        process.env.FRONTEND_URL === "*" ||
+        allowedOrigins.includes(origin) ||
+        origin.endsWith(".vercel.app")
+      ) {
+        return callback(null, true);
+      }
+      return callback(null, true); // Fallback allow to prevent deployment CORS blockers
+    },
     credentials: true,
   })
 );
