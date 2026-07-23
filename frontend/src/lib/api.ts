@@ -135,6 +135,16 @@ export async function fetchPlaylist(
   return res.data;
 }
 
+/** Import a playlist from a Spotify URL */
+export async function importPlaylistApi(url: string): Promise<ApiPlaylistDetail> {
+  const res = await apiFetch<{ success: boolean; playlist: ApiPlaylistDetail }>("/playlist/import", {
+    method: "POST",
+    body: JSON.stringify({ url }),
+  });
+  if (!res.success) throw new Error("Failed to import playlist");
+  return res.playlist;
+}
+
 // --- Phase 6: Fetch-on-miss song resolution ---
 
 export interface ApiSong {
