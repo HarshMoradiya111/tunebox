@@ -4,9 +4,10 @@ import { Play, Pause, Heart, MoreHorizontal } from "lucide-react";
 import { usePlayer, PlayerTrack } from "@/store/playerStore";
 import { useState } from "react";
 
-export default function PlaylistActionBar({ tracks }: { tracks: PlayerTrack[] }) {
-  const { playQueue, isPlaying, currentTrack, pause, resume } = usePlayer();
-  const [isLiked, setIsLiked] = useState(false);
+export default function PlaylistActionBar({ tracks, playlistInfo }: { tracks: PlayerTrack[], playlistInfo?: { id: string, name: string } }) {
+  const { playQueue, isPlaying, currentTrack, pause, resume, savedPlaylists, toggleSavedPlaylist } = usePlayer();
+  
+  const isLiked = playlistInfo ? savedPlaylists.some(p => p.id === playlistInfo.id) : false;
 
   // Check if current playing track is part of this playlist
   const isThisPlaylistPlaying = 
@@ -42,7 +43,7 @@ export default function PlaylistActionBar({ tracks }: { tracks: PlayerTrack[] })
         )}
       </button>
       <button 
-        onClick={() => setIsLiked(!isLiked)}
+        onClick={() => playlistInfo && toggleSavedPlaylist(playlistInfo)}
         className={`transition-colors ${isLiked ? "text-[#1db954]" : "text-[#b3b3b3] hover:text-white"}`}
       >
         <Heart className={`w-8 h-8 ${isLiked ? "fill-current" : ""}`} />

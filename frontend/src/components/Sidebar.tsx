@@ -11,9 +11,11 @@ import {
   Music2,
   Compass,
 } from "lucide-react";
+import { usePlayer } from "@/store/playerStore";
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { savedPlaylists } = usePlayer();
 
   const mainNav = [
     { name: "Home", href: "/", icon: Home },
@@ -21,7 +23,7 @@ export default function Sidebar() {
     { name: "Your Library", href: "/playlist/liked-songs", icon: Library },
   ];
 
-  const userPlaylists = [
+  const defaultPlaylists = [
     { id: "37i9dQZEVXbMDoHDwVN2tF", name: "Top 50 - Global" },
     { id: "37i9dQZF1DXcBWIGoYBM5M", name: "Today's Top Hits" },
     { id: "chill-vibes", name: "Chill Lofi Study Beats" },
@@ -30,6 +32,14 @@ export default function Sidebar() {
     { id: "rock-classics", name: "Rock Classics" },
     { id: "coding-mode", name: "Coding Mode Flow State" },
   ];
+
+  // Combine default playlists and saved playlists (avoiding duplicates)
+  const allPlaylists = [...defaultPlaylists];
+  savedPlaylists.forEach((sp) => {
+    if (!allPlaylists.some((p) => p.id === sp.id)) {
+      allPlaylists.push(sp);
+    }
+  });
 
   return (
     <>
@@ -108,11 +118,11 @@ export default function Sidebar() {
 
           {/* Scrollable Playlist List */}
           <div className="flex-1 overflow-y-auto flex flex-col gap-1 pr-1 border-t border-[#282828] pt-2">
-            {userPlaylists.map((pl) => (
+            {allPlaylists.map((pl) => (
               <Link
                 key={pl.id}
                 href={`/playlist/${pl.id}`}
-                className="px-2 py-1.5 rounded text-sm text-[#b3b3b3] hover:text-white hover:bg-[#1a1a1a] truncate transition-colors"
+                className="px-2 py-1.5 rounded text-sm text-[#b3b3b3] hover:text-white hover:bg-[#1a1a1a] truncate transition-colors shrink-0"
               >
                 {pl.name}
               </Link>

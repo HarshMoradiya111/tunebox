@@ -85,7 +85,7 @@ export default async function PlaylistPage({ params }: PlaylistPageProps) {
       </div>
 
       {/* Action Bar Section */}
-      <PlaylistActionBar tracks={tracks} />
+      <PlaylistActionBar tracks={tracks} playlistInfo={{ id, name: playlistName }} />
 
       {/* Track Table Header */}
       <div className="px-6">

@@ -42,6 +42,8 @@ interface PlayerState {
   // Shuffle & Repeat
   isShuffled: boolean;
   repeatMode: "off" | "all" | "one";
+  // Saved Playlists
+  savedPlaylists: { id: string; name: string }[];
 }
 
 interface PlayerActions {
@@ -65,6 +67,8 @@ interface PlayerActions {
   cycleRepeat: () => void;
   // Player ref
   playerRef: any;
+  // Saved Playlists
+  toggleSavedPlaylist: (playlist: { id: string; name: string }) => void;
 }
 
 type PlayerContextType = PlayerState & PlayerActions;
@@ -90,6 +94,16 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isShuffled, setIsShuffled] = useState(false);
   const [repeatMode, setRepeatMode] = useState<"off" | "all" | "one">("off");
+  const [savedPlaylists, setSavedPlaylists] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("savedPlaylists");
+    if (stored) {
+      try {
+        setSavedPlaylists(JSON.parse(stored));
+      } catch (e) {}
+    }
+  }, []);
 
   // --- Internal: load a track into the audio element ---
   // Phase 6: cache-first, fetch-on-miss
@@ -356,6 +370,17 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const toggleSavedPlaylist = useCallback((playlist: { id: string; name: string }) => {
+    setSavedPlaylists(prev => {
+      const exists = prev.find(p => p.id === playlist.id);
+      const newPlaylists = exists 
+        ? prev.filter(p => p.id !== playlist.id)
+        : [...prev, playlist];
+      localStorage.setItem("savedPlaylists", JSON.stringify(newPlaylists));
+      return newPlaylists;
+    });
+  }, []);
+
   const value: PlayerContextType = {
     currentTrack,
     queue,
@@ -383,6 +408,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     toggleMute,
     toggleShuffle,
     cycleRepeat,
+    savedPlaylists,
+    toggleSavedPlaylist,
     playerRef,
   };
 
