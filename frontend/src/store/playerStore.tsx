@@ -9,7 +9,6 @@ import React, {
   useEffect,
   type ReactNode,
 } from "react";
-import ReactPlayer from "react-player";
 import { resolveTrackStream } from "@/lib/api";
 
 // --- Types ---
@@ -309,13 +308,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, [queue, queueIndex, repeatMode, loadTrack]);
 
   const seek = useCallback((time: number) => {
-    playerRef.current?.seekTo(time, "seconds");
+    if (playerRef.current) playerRef.current.currentTime = time;
     setCurrentTime(time);
   }, []);
 
   const seekPercent = useCallback((percent: number) => {
     const time = (percent / 100) * duration;
-    playerRef.current?.seekTo(time, "seconds");
+    if (playerRef.current) playerRef.current.currentTime = time;
     setCurrentTime(time);
   }, [duration]);
 
@@ -413,17 +412,33 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     playerRef,
   };
 
-  const Player = ReactPlayer as any;
-
   const currentStreamUrl = currentTrack?.streamUrl 
     ? (currentTrack.streamUrl.startsWith("http") 
         ? currentTrack.streamUrl 
-        : (currentTrack.streamUrl.startsWith("/api/") && API_BASE.endsWith("/api")
-            ? `${API_BASE.replace(/\/api$/, "")}${currentTrack.streamUrl}`
-            : `${API_BASE.replace(/\/$/, "")}${currentTrack.streamUrl.startsWith("/") ? "" : "/"}${currentTrack.streamUrl}`
+        : (currentTrack.streamUrl.startsWith("/api/") && process.env.NEXT_PUBLIC_API_URL?.endsWith("/api")
+            ? `${process.env.NEXT_PUBLIC_API_URL.replace(/\/api$/, "")}${currentTrack.streamUrl}`
+            : `${(process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000").replace(/\/$/, "")}${currentTrack.streamUrl.startsWith("/") ? "" : "/"}${currentTrack.streamUrl}`
           )
       ) 
     : undefined;
+
+  // Sync volume and mute state
+  useEffect(() => {
+    if (playerRef.current) {
+      playerRef.current.volume = isMuted ? 0 : volume / 100;
+    }
+  }, [volume, isMuted]);
+
+  // Sync play/pause state
+  useEffect(() => {
+    if (playerRef.current) {
+      if (isPlaying) {
+        playerRef.current.play().catch((e: any) => console.error("Auto-play blocked:", e));
+      } else {
+        playerRef.current.pause();
+      }
+    }
+  }, [isPlaying, currentStreamUrl]);
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -432,28 +447,19 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   return (
     <PlayerContext.Provider value={value}>
-      {/* Hidden ReactPlayer for audio/video streaming */}
+      {/* Native HTML5 Audio for streaming */}
       <div style={{ display: "none" }}>
         {mounted && (
-          <Player
+          <audio
             ref={playerRef}
-            url={currentStreamUrl}
-            playing={isPlaying}
-            volume={isMuted ? 0 : volume / 100}
-            onProgress={onProgress}
-            onDuration={onDuration}
-            onReady={onReady}
-            onPlay={onPlay}
-            onPause={onPause}
+            src={currentStreamUrl}
+            onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+            onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
+            onCanPlay={() => setIsLoading(false)}
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
             onEnded={onEnded}
             onError={onError}
-            width="0"
-            height="0"
-            config={{
-              youtube: {
-                playerVars: { autoplay: 1, controls: 0 } as any
-              }
-            } as any}
           />
         )}
       </div>
