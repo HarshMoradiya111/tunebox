@@ -106,3 +106,35 @@ export async function getPlaylistById(
     next(error);
   }
 }
+
+/**
+ * GET /api/playlist/:spotifyId/import-status
+ * Returns the current import status and progress of a playlist.
+ */
+export async function getImportStatus(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const spotifyId = req.params.spotifyId as string;
+    
+    const playlist = await Playlist.findOne({ spotifyId })
+      .select("importStatus totalTracks tracks")
+      .lean();
+
+    if (!playlist) {
+      res.status(404).json({ success: false, message: "Playlist not found" });
+      return;
+    }
+
+    res.json({
+      success: true,
+      importStatus: playlist.importStatus,
+      totalTracks: playlist.totalTracks,
+      tracksImportedSoFar: playlist.tracks?.length || 0
+    });
+  } catch (error) {
+    next(error);
+  }
+}

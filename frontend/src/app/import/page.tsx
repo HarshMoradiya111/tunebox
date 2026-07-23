@@ -12,8 +12,11 @@ export default function ImportPage() {
 
   const handleImport = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!url.includes("spotify.com/playlist/")) {
-      setError("Please enter a valid Spotify playlist URL");
+    const match = url.match(/playlist\/([a-zA-Z0-9]+)/);
+    const spotifyId = match ? match[1] : null;
+
+    if (!spotifyId) {
+      setError("Please enter a valid Spotify playlist URL (could not extract ID)");
       return;
     }
 
@@ -22,8 +25,11 @@ export default function ImportPage() {
 
     try {
       const playlist = await importPlaylistApi(url);
-      if (playlist && playlist.spotifyId) {
+      if (playlist && typeof playlist.spotifyId === "string" && playlist.spotifyId.length > 0) {
         router.push(`/playlist/${playlist.spotifyId}`);
+      } else {
+        setError("Import failed: No valid playlist ID returned.");
+        setLoading(false);
       }
     } catch (err: any) {
       setError(err.message || "Failed to import playlist. Please try again.");

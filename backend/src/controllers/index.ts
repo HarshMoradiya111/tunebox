@@ -3,5 +3,5 @@ export {
   newReleases,
   browseCategories,
 } from "./browseController";
-export { getPlaylistById } from "./playlistController";
+export { getPlaylistById, getImportStatus } from "./playlistController";
 export { fetchSong, fetchSongStatus } from "./fetchController";

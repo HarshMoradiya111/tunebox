@@ -15,9 +15,13 @@ export const importPlaylist = async (req: Request, res: Response): Promise<void>
     }
 
     // Extract Spotify ID from URL
-    const urlParts = url.split("/");
-    const playlistIdPart = urlParts[urlParts.length - 1];
-    const spotifyId = playlistIdPart.split("?")[0];
+    const match = url.match(/playlist\/([a-zA-Z0-9]+)/);
+    const spotifyId = match ? match[1] : null;
+    
+    if (!spotifyId) {
+      res.status(400).json({ success: false, message: "Could not find a playlist ID in that URL" });
+      return;
+    }
 
     // Check if playlist already exists
     let existingPlaylist = await Playlist.findOne({ spotifyId }).populate("tracks");
