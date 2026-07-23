@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Play, Pause, Heart, MoreHorizontal } from "lucide-react";
+import { Play, Pause, Heart, MoreHorizontal, ListPlus } from "lucide-react";
 import { useState } from "react";
 import { MockTrack } from "@/lib/mockData";
 import { usePlayer, PlayerTrack } from "@/store/playerStore";
@@ -27,7 +27,7 @@ function mockToPlayerTrack(t: MockTrack): PlayerTrack {
 }
 
 export default function TrackRow({ track, index, allTracks }: TrackRowProps) {
-  const { currentTrack, isPlaying, playTrack, playQueue, togglePlay } =
+  const { currentTrack, isPlaying, playTrack, playQueue, togglePlay, addToQueue } =
     usePlayer();
   const [isLiked, setIsLiked] = useState(false);
 
@@ -117,6 +117,16 @@ export default function TrackRow({ track, index, allTracks }: TrackRowProps) {
           <Heart className={`w-4 h-4 ${isLiked ? "fill-current" : ""}`} />
         </button>
         <span>{formatDuration(track.duration)}</span>
+        <button
+          onClick={(e) => {
+            e.stopPropagation(); // prevent row click (which plays track)
+            addToQueue(mockToPlayerTrack(track));
+          }}
+          className="opacity-0 group-hover:opacity-100 text-[#b3b3b3] hover:text-white transition-opacity"
+          title="Add to queue"
+        >
+          <ListPlus className="w-4 h-4" />
+        </button>
         <button className="opacity-0 group-hover:opacity-100 text-[#b3b3b3] hover:text-white transition-opacity">
           <MoreHorizontal className="w-4 h-4" />
         </button>

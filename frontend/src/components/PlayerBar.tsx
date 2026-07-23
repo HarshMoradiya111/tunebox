@@ -44,6 +44,8 @@ export default function PlayerBar() {
     seekPercent,
     setVolume,
     toggleMute,
+    isShuffled,
+    repeatMode,
     toggleShuffle,
     cycleRepeat,
   } = usePlayer();
@@ -60,8 +62,6 @@ export default function PlayerBar() {
       : effectiveVolume < 50
         ? Volume1
         : Volume2;
-
-  const RepeatIcon = repeatMode === "one" ? Repeat1 : Repeat;
 
   return (
     <footer className="h-24 bg-black border-t border-[#282828] px-4 flex items-center justify-between z-50 select-none">
@@ -108,15 +108,16 @@ export default function PlayerBar() {
         <div className="flex items-center gap-4 text-[#b3b3b3]">
           <button
             onClick={toggleShuffle}
-            className={`hover:text-white transition-colors p-1 ${
-              isShuffled ? "text-[#1db954]" : ""
+            className={`transition-colors p-1 relative ${
+              isShuffled ? "text-[#1db954]" : "text-[#b3b3b3] hover:text-white"
             }`}
           >
             <Shuffle className="w-4 h-4" />
+            {isShuffled && <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-[#1db954] rounded-full"></span>}
           </button>
           <button
             onClick={prevTrack}
-            className="hover:text-white transition-colors p-1"
+            className="text-[#b3b3b3] hover:text-white transition-colors p-1"
           >
             <SkipBack className="w-5 h-5 fill-current" />
           </button>
@@ -135,17 +136,18 @@ export default function PlayerBar() {
           </button>
           <button
             onClick={nextTrack}
-            className="hover:text-white transition-colors p-1"
+            className="text-[#b3b3b3] hover:text-white transition-colors p-1"
           >
             <SkipForward className="w-5 h-5 fill-current" />
           </button>
           <button
             onClick={cycleRepeat}
-            className={`hover:text-white transition-colors p-1 ${
-              repeatMode !== "off" ? "text-[#1db954]" : ""
+            className={`transition-colors p-1 relative ${
+              repeatMode !== "off" ? "text-[#1db954]" : "text-[#b3b3b3] hover:text-white"
             }`}
           >
-            <RepeatIcon className="w-4 h-4" />
+            {repeatMode === "one" ? <Repeat1 className="w-4 h-4" /> : <Repeat className="w-4 h-4" />}
+            {repeatMode !== "off" && <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-[#1db954] rounded-full"></span>}
           </button>
         </div>
 

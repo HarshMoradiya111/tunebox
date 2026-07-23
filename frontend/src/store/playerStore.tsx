@@ -29,6 +29,7 @@ interface PlayerState {
   currentTrack: PlayerTrack | null;
   // Queue
   queue: PlayerTrack[];
+  originalQueue: PlayerTrack[];
   queueIndex: number;
   // Playback
   isPlaying: boolean;
@@ -46,6 +47,7 @@ interface PlayerActions {
   // Playback
   playTrack: (track: PlayerTrack) => void;
   playQueue: (tracks: PlayerTrack[], startIndex?: number) => void;
+  addToQueue: (track: PlayerTrack) => void;
   togglePlay: () => void;
   pause: () => void;
   resume: () => void;
@@ -77,6 +79,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   const [currentTrack, setCurrentTrack] = useState<PlayerTrack | null>(null);
   const [queue, setQueue] = useState<PlayerTrack[]>([]);
+  const [originalQueue, setOriginalQueue] = useState<PlayerTrack[]>([]);
   const [queueIndex, setQueueIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -218,6 +221,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const playTrack = useCallback(
     (track: PlayerTrack) => {
       setQueue([track]);
+      setOriginalQueue([track]);
       setQueueIndex(0);
       loadTrack(track, true);
     },
@@ -227,11 +231,43 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const playQueue = useCallback(
     (tracks: PlayerTrack[], startIndex = 0) => {
       if (tracks.length === 0) return;
-      setQueue(tracks);
-      setQueueIndex(startIndex);
-      loadTrack(tracks[startIndex], true);
+      
+      setOriginalQueue(tracks);
+
+      if (isShuffled) {
+        // Shuffle the tracks, keeping the selected track first
+        const selectedTrack = tracks[startIndex];
+        const remainingTracks = tracks.filter((_, i) => i !== startIndex);
+        
+        // Fisher-Yates shuffle
+        for (let i = remainingTracks.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [remainingTracks[i], remainingTracks[j]] = [remainingTracks[j], remainingTracks[i]];
+        }
+        
+        const shuffledQueue = [selectedTrack, ...remainingTracks];
+        setQueue(shuffledQueue);
+        setQueueIndex(0);
+        loadTrack(selectedTrack, true);
+      } else {
+        setQueue(tracks);
+        setQueueIndex(startIndex);
+        loadTrack(tracks[startIndex], true);
+      }
     },
-    [loadTrack]
+    [loadTrack, isShuffled]
+  );
+
+  const addToQueue = useCallback(
+    (track: PlayerTrack) => {
+      setQueue((prev) => [...prev, track]);
+      setOriginalQueue((prev) => [...prev, track]);
+      // If nothing is playing, play it
+      if (!currentTrack) {
+        playTrack(track);
+      }
+    },
+    [currentTrack, playTrack]
   );
 
   const togglePlay = useCallback(() => {
@@ -273,11 +309,18 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       audio.currentTime = 0;
       return;
     }
-    if (queue.length === 0 || queueIndex <= 0) return;
-    const prevIdx = queueIndex - 1;
+    if (queue.length === 0) return;
+    let prevIdx = queueIndex - 1;
+    if (prevIdx < 0) {
+      if (repeatMode === "all") {
+        prevIdx = queue.length - 1;
+      } else {
+        prevIdx = 0;
+      }
+    }
     setQueueIndex(prevIdx);
     loadTrack(queue[prevIdx], true);
-  }, [queue, queueIndex, loadTrack]);
+  }, [queue, queueIndex, repeatMode, loadTrack]);
 
   const seek = useCallback((time: number) => {
     const audio = audioRef.current;
@@ -301,8 +344,38 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const toggleShuffle = useCallback(() => {
-    setIsShuffled((prev) => !prev);
-  }, []);
+    setIsShuffled((prev) => {
+      const nextShuffled = !prev;
+      
+      if (nextShuffled) {
+        // Turning shuffle ON
+        if (queue.length > 0 && currentTrack) {
+          // Filter out current track
+          const remaining = originalQueue.filter((t) => t.id !== currentTrack.id);
+          
+          // Fisher-Yates
+          for (let i = remaining.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [remaining[i], remaining[j]] = [remaining[j], remaining[i]];
+          }
+          
+          setQueue([currentTrack, ...remaining]);
+          setQueueIndex(0);
+        }
+      } else {
+        // Turning shuffle OFF
+        setQueue(originalQueue);
+        if (currentTrack) {
+          const originalIdx = originalQueue.findIndex((t) => t.id === currentTrack.id);
+          setQueueIndex(originalIdx !== -1 ? originalIdx : 0);
+        } else {
+          setQueueIndex(0);
+        }
+      }
+      
+      return nextShuffled;
+    });
+  }, [queue, originalQueue, currentTrack]);
 
   const cycleRepeat = useCallback(() => {
     setRepeatMode((prev) => {
@@ -315,6 +388,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const value: PlayerContextType = {
     currentTrack,
     queue,
+    originalQueue,
     queueIndex,
     isPlaying,
     currentTime,
@@ -326,6 +400,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     repeatMode,
     playTrack,
     playQueue,
+    addToQueue,
     togglePlay,
     pause,
     resume,
