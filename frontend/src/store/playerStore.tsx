@@ -109,9 +109,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         audio.src = url;
         audio.load();
         if (autoPlay) {
-          audio.addEventListener("canplay", () => audio.play().catch(() => {}), {
-            once: true,
-          });
+          audio.play().catch((err) => console.error("Playback error:", err));
         }
       } else {
         // No stream URL — trigger fetch-on-miss
@@ -132,10 +130,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
               : `${API_BASE}${result.streamUrl}`;
             audio.src = streamSrc;
             audio.load();
+            
             // Auto-play after fetching
-            audio.addEventListener("canplay", () => audio.play().catch(() => {}), {
-              once: true,
-            });
+            if (autoPlay) {
+              audio.play().catch((err) => console.error("Playback error:", err));
+            }
 
             // Update the track in the queue so replays are instant
             setQueue((prevQueue) =>
@@ -159,55 +158,43 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  // --- Audio event listeners ---
-  useEffect(() => {
+  // --- Audio event handlers ---
+  const onTimeUpdate = () => {
+    if (audioRef.current) setCurrentTime(audioRef.current.currentTime);
+  };
+  
+  const onDurationChange = () => {
+    if (audioRef.current) setDuration(audioRef.current.duration || 0);
+  };
+  
+  const onCanPlay = () => setIsLoading(false);
+  const onPlay = () => setIsPlaying(true);
+  const onPause = () => setIsPlaying(false);
+  
+  const onEnded = () => {
     const audio = audioRef.current;
     if (!audio) return;
-
-    const onTimeUpdate = () => setCurrentTime(audio.currentTime);
-    const onDurationChange = () => setDuration(audio.duration || 0);
-    const onCanPlay = () => setIsLoading(false);
-    const onPlay = () => setIsPlaying(true);
-    const onPause = () => setIsPlaying(false);
-    const onEnded = () => {
-      // Auto-advance logic
-      if (repeatMode === "one") {
-        audio.currentTime = 0;
-        audio.play().catch(() => {});
-      } else if (queueIndex < queue.length - 1) {
-        const nextIdx = queueIndex + 1;
-        setQueueIndex(nextIdx);
-        loadTrack(queue[nextIdx], true);
-      } else if (repeatMode === "all" && queue.length > 0) {
-        setQueueIndex(0);
-        loadTrack(queue[0], true);
-      } else {
-        setIsPlaying(false);
-      }
-    };
-    const onError = () => {
-      setIsLoading(false);
-      console.error("Audio playback error");
-    };
-
-    audio.addEventListener("timeupdate", onTimeUpdate);
-    audio.addEventListener("durationchange", onDurationChange);
-    audio.addEventListener("canplay", onCanPlay);
-    audio.addEventListener("play", onPlay);
-    audio.addEventListener("pause", onPause);
-    audio.addEventListener("ended", onEnded);
-    audio.addEventListener("error", onError);
-
-    return () => {
-      audio.removeEventListener("timeupdate", onTimeUpdate);
-      audio.removeEventListener("durationchange", onDurationChange);
-      audio.removeEventListener("canplay", onCanPlay);
-      audio.removeEventListener("play", onPlay);
-      audio.removeEventListener("pause", onPause);
-      audio.removeEventListener("ended", onEnded);
-      audio.removeEventListener("error", onError);
-    };
-  }, [queue, queueIndex, repeatMode, loadTrack]);
+    
+    // Auto-advance logic
+    if (repeatMode === "one") {
+      audio.currentTime = 0;
+      audio.play().catch(() => {});
+    } else if (queueIndex < queue.length - 1) {
+      const nextIdx = queueIndex + 1;
+      setQueueIndex(nextIdx);
+      loadTrack(queue[nextIdx], true);
+    } else if (repeatMode === "all" && queue.length > 0) {
+      setQueueIndex(0);
+      loadTrack(queue[0], true);
+    } else {
+      setIsPlaying(false);
+    }
+  };
+  
+  const onError = () => {
+    setIsLoading(false);
+    console.error("Audio playback error");
+  };
 
   // Sync volume to audio element
   useEffect(() => {
@@ -418,7 +405,17 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   return (
     <PlayerContext.Provider value={value}>
       {/* Hidden audio element for playback */}
-      <audio ref={audioRef} preload="auto" />
+      <audio
+        ref={audioRef}
+        preload="auto"
+        onTimeUpdate={onTimeUpdate}
+        onDurationChange={onDurationChange}
+        onCanPlay={onCanPlay}
+        onPlay={onPlay}
+        onPause={onPause}
+        onEnded={onEnded}
+        onError={onError}
+      />
       {children}
     </PlayerContext.Provider>
   );
