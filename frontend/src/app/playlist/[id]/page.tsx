@@ -1,7 +1,8 @@
 import Image from "next/image";
 import { Play, Heart, Clock, MoreHorizontal } from "lucide-react";
 import TrackRow from "@/components/TrackRow";
-import { MOCK_TRACKS } from "@/lib/mockData";
+import { fetchPlaylist, ApiPlaylistDetail } from "@/lib/api";
+import { MOCK_TRACKS, MockTrack } from "@/lib/mockData";
 
 interface PlaylistPageProps {
   params: Promise<{ id: string }>;
@@ -10,10 +11,46 @@ interface PlaylistPageProps {
 export default async function PlaylistPage({ params }: PlaylistPageProps) {
   const { id } = await params;
 
-  const playlistTitle = id
+  let playlistName = id
     .split("-")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
+
+  let coverImage =
+    "https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=500&h=500&fit=crop";
+  let description = "Your favorite hits and top releases updated daily.";
+  let owner = "TuneBox";
+  let trackCount = MOCK_TRACKS.length;
+  let tracks: MockTrack[] = MOCK_TRACKS;
+
+  // Try to fetch real data from backend
+  try {
+    const playlist: ApiPlaylistDetail = await fetchPlaylist(id);
+    playlistName = playlist.name;
+    coverImage = playlist.coverImage || coverImage;
+    description = playlist.description || description;
+    owner = playlist.owner || owner;
+    trackCount = playlist.totalTracks || playlist.tracks.length;
+
+    // Map API tracks to MockTrack shape for the TrackRow component
+    if (playlist.tracks && playlist.tracks.length > 0) {
+      tracks = playlist.tracks.map((t, i) => ({
+        id: t._id || t.spotifyId,
+        spotifyId: t.spotifyId,
+        title: t.title,
+        artist: t.artist,
+        album: t.album,
+        albumArt: t.albumArt,
+        duration: Math.round(t.duration / 1000), // ms to seconds
+        dateAdded: "Recently",
+      }));
+    }
+  } catch {
+    // Backend not running — use mock data (already set above)
+  }
+
+  const totalDuration = tracks.reduce((sum, t) => sum + t.duration, 0);
+  const totalMinutes = Math.round(totalDuration / 60);
 
   return (
     <div className="flex flex-col gap-6 -mx-6 -mt-6">
@@ -21,8 +58,8 @@ export default async function PlaylistPage({ params }: PlaylistPageProps) {
       <div className="bg-gradient-to-b from-indigo-900 via-indigo-950 to-[#121212] p-8 pt-12 flex flex-col sm:flex-row items-end gap-6">
         <div className="relative w-48 h-48 sm:w-56 sm:h-56 rounded-md shadow-2xl overflow-hidden bg-[#242424] shrink-0">
           <Image
-            src="https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=500&h=500&fit=crop"
-            alt={playlistTitle}
+            src={coverImage}
+            alt={playlistName}
             fill
             className="object-cover"
           />
@@ -33,16 +70,14 @@ export default async function PlaylistPage({ params }: PlaylistPageProps) {
             Playlist
           </span>
           <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tight line-clamp-2">
-            {playlistTitle || "Featured Playlist"}
+            {playlistName}
           </h1>
-          <p className="text-sm text-[#b3b3b3]">
-            Your favorite hits and top releases updated daily.
-          </p>
+          <p className="text-sm text-[#b3b3b3]">{description}</p>
           <div className="flex items-center gap-2 text-xs text-white font-medium">
-            <span className="font-bold">TuneBox</span>
+            <span className="font-bold">{owner}</span>
             <span>•</span>
-            <span>{MOCK_TRACKS.length} songs,</span>
-            <span className="text-[#b3b3b3]">about 22 min</span>
+            <span>{trackCount} songs,</span>
+            <span className="text-[#b3b3b3]">about {totalMinutes} min</span>
           </div>
         </div>
       </div>
@@ -74,7 +109,7 @@ export default async function PlaylistPage({ params }: PlaylistPageProps) {
 
         {/* Track Rows */}
         <div className="flex flex-col gap-1 mt-2">
-          {MOCK_TRACKS.map((track, index) => (
+          {tracks.map((track, index) => (
             <TrackRow key={track.id} track={track} index={index} />
           ))}
         </div>

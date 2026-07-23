@@ -3,18 +3,67 @@ import Link from "next/link";
 import { Play } from "lucide-react";
 import CarouselRow from "@/components/CarouselRow";
 import {
-  MOCK_RECENT_GRID,
+  fetchFeaturedPlaylists,
+  fetchNewReleases,
+  ApiFeaturedPlaylist,
+  ApiNewRelease,
+} from "@/lib/api";
+import {
   MOCK_FEATURED_PLAYLISTS,
   MOCK_NEW_RELEASES,
+  MOCK_RECENT_GRID,
+  MockMediaItem,
 } from "@/lib/mockData";
 
-export default function Home() {
+// Convert API data to the MockMediaItem shape the Card component expects
+function playlistToMediaItem(p: ApiFeaturedPlaylist): MockMediaItem {
+  return {
+    id: p.spotifyId,
+    title: p.name,
+    subtitle: p.description || `${p.totalTracks} songs`,
+    image: p.coverImage,
+    type: "playlist",
+  };
+}
+
+function releaseToMediaItem(r: ApiNewRelease): MockMediaItem {
+  return {
+    id: r.spotifyId,
+    title: r.name,
+    subtitle: `${r.artist} • ${r.albumType}`,
+    image: r.coverImage,
+    type: "album",
+  };
+}
+
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  let featuredItems: MockMediaItem[];
+  let newReleaseItems: MockMediaItem[];
+
+  try {
+    const [featured, releases] = await Promise.all([
+      fetchFeaturedPlaylists(),
+      fetchNewReleases(),
+    ]);
+    featuredItems = featured.map(playlistToMediaItem);
+    newReleaseItems = releases.map(releaseToMediaItem);
+  } catch {
+    // Fallback to mock data when backend is not running
+    featuredItems = MOCK_FEATURED_PLAYLISTS;
+    newReleaseItems = MOCK_NEW_RELEASES;
+  }
+
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return "Good morning";
     if (hour < 18) return "Good afternoon";
     return "Good evening";
   };
+
+  // Recent grid uses mock data for now (would need user-specific data / auth)
+  const recentGrid = MOCK_RECENT_GRID;
 
   return (
     <div className="flex flex-col gap-8 select-none">
@@ -25,7 +74,7 @@ export default function Home() {
         </h1>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-          {MOCK_RECENT_GRID.map((item) => (
+          {recentGrid.map((item) => (
             <Link
               key={item.id}
               href={`/playlist/${item.id}`}
@@ -51,10 +100,10 @@ export default function Home() {
       </section>
 
       {/* Featured Playlists Row */}
-      <CarouselRow title="Featured Playlists" items={MOCK_FEATURED_PLAYLISTS} />
+      <CarouselRow title="Featured Playlists" items={featuredItems} />
 
       {/* New Releases Row */}
-      <CarouselRow title="New Releases" items={MOCK_NEW_RELEASES} />
+      <CarouselRow title="New Releases" items={newReleaseItems} />
     </div>
   );
 }
