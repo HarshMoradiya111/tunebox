@@ -47,6 +47,44 @@ router.get("/homepage", async (req: Request, res: Response) => {
   }
 });
 
+router.get("/search", async (req: Request, res: Response): Promise<any> => {
+  try {
+    const query = req.query.q;
+    if (!query) {
+      return res.status(400).json({ success: false, message: 'Search query is required' });
+    }
+
+    const response = await musicBrainz.get("/recording", {
+      params: {
+        query: query,
+        fmt: "json",
+      },
+    });
+
+    const recordings = response.data.recordings || [];
+
+    const formattedTracks = recordings.slice(0, 20).map((track: any) => {
+      // Find the first release ID to get cover art
+      const releaseId = track.releases?.[0]?.id || "";
+      const coverArtUrl = releaseId 
+        ? `https://coverartarchive.org/release/${releaseId}/front` 
+        : "";
+
+      return {
+        id: track.id,
+        title: track.title,
+        artist: track["artist-credit"]?.[0]?.name || "Unknown Artist",
+        coverArtUrl,
+      };
+    });
+
+    res.json({ success: true, data: formattedTracks });
+  } catch (error: any) {
+    console.error("MusicBrainz Search Error:", error.message);
+    res.status(500).json({ success: false, message: "Failed to perform search" });
+  }
+});
+
 interface StreamRequest {
   title: string;
   artist: string;
