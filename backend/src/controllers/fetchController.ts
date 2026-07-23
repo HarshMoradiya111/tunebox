@@ -45,57 +45,25 @@ export async function fetchSong(
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
-    // Fetch stream via yt-search and ytdl-core
-    const ytSearch = require("yt-search");
-    const ytdl = require("@distube/ytdl-core");
-    const axios = require("axios");
-    const searchQuery = `${title} ${artist} lyrics audio`;
-    
-    let finalStreamUrl = null;
-
-    try {
-      const searchResults = await ytSearch(searchQuery);
-      if (searchResults && searchResults.videos && searchResults.videos.length > 0) {
-        const videoUrl = searchResults.videos[0].url;
-        const streamInfo = await ytdl.getInfo(videoUrl);
-        const audioStream = ytdl.chooseFormat(streamInfo.formats, { quality: "highestaudio" });
-        if (audioStream && audioStream.url) {
-          finalStreamUrl = audioStream.url;
-        }
+    // Use the reliable downloadService with yt-dlp instead of ytdl-core
+    const { processDownload } = require("../services/downloadService");
+    const newSong = await processDownload({
+      track: {
+        id: spotifyTrackId || `${title}-${artist}`,
+        name: title,
+        artists: [{ name: artist }],
+        album: { name: req.body.album || "", images: [{ url: req.body.albumArt || "" }] },
+        duration_ms: 0
       }
-    } catch (ytError) {
-      console.warn("YouTube extraction failed in fetchController. Falling back to iTunes preview...");
-    }
+    });
 
-    // Fallback to iTunes API if YouTube fails
-    if (!finalStreamUrl) {
-      try {
-        const itunesRes = await axios.get(`https://itunes.apple.com/search?term=${encodeURIComponent(title + " " + artist)}&entity=song&limit=1`);
-        if (itunesRes.data.resultCount > 0 && itunesRes.data.results[0].previewUrl) {
-          finalStreamUrl = itunesRes.data.results[0].previewUrl;
-        }
-      } catch (itunesError) {
-        console.error("iTunes fallback failed:", itunesError);
-      }
-    }
-
-    if (!finalStreamUrl) {
+    if (!newSong || !newSong.streamUrl) {
       await Song.updateOne({ _id: songDoc._id }, { status: "failed", errorMessage: "Audio stream unavailable" });
       res.status(404).json({ success: false, error: "Song audio track not found" });
       return;
     }
 
-    // Update Song doc to "ready" but do NOT save the streamUrl
-    // (YouTube URLs expire in 6h, and iTunes fallbacks are 30s clips that shouldn't permanently poison the DB)
-    const updatedSong = await Song.findOneAndUpdate(
-      { _id: songDoc._id },
-      {
-        status: "ready",
-        duration: 0, 
-        format: "stream",
-      },
-      { new: true }
-    );
+    const updatedSong = await Song.findById(newSong._id);
 
     if (!updatedSong) {
       res.status(404).json({ success: false, error: "Song document not found after creation" });
@@ -107,7 +75,7 @@ export async function fetchSong(
       source: "fetched",
       data: {
         ...updatedSong.toObject(),
-        streamUrl: finalStreamUrl // Attach the streamUrl only to the current response
+        streamUrl: updatedSong.streamUrl
       },
     });
   } catch (error: any) {

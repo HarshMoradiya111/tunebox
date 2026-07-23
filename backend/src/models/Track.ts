@@ -9,6 +9,7 @@ export interface ITrack extends Document {
   duration: number; // in milliseconds
   trackNumber: number;
   previewUrl?: string;
+  streamUrl?: string;
 }
 
 const trackSchema = new Schema<ITrack>(
@@ -21,6 +22,7 @@ const trackSchema = new Schema<ITrack>(
     duration: { type: Number, default: 0 },
     trackNumber: { type: Number, default: 1 },
     previewUrl: { type: String },
+    streamUrl: { type: String, default: "" },
   },
   { timestamps: true }
 );

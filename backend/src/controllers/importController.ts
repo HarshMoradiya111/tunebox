@@ -85,7 +85,11 @@ export const importPlaylist = async (req: Request, res: Response): Promise<void>
                 album: "Spotify Import",
                 albumArt: preview.image || "",
                 duration: t.duration_ms || t.duration || 0,
+                streamUrl: song.streamUrl || "",
               });
+              await existingTrack.save();
+            } else if (!existingTrack.streamUrl && song.streamUrl) {
+              existingTrack.streamUrl = song.streamUrl;
               await existingTrack.save();
             }
 

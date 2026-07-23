@@ -66,6 +66,7 @@ export interface ApiTrack {
   duration: number;
   trackNumber: number;
   previewUrl?: string;
+  streamUrl?: string;
 }
 
 export interface ApiPlaylistDetail {
@@ -205,16 +206,10 @@ export async function resolveTrackStream(params: {
   albumArt?: string;
 }): Promise<{ streamUrl: string; duration: number } | null> {
   try {
-    const res = await apiFetch<{ success: boolean; audioUrl: string }>("/stream", {
-      method: "POST",
-      body: JSON.stringify({
-        title: params.title,
-        artist: params.artist,
-      }),
-    });
+    const res = await fetchSongApi(params);
 
-    if (res.success && res.audioUrl) {
-      return { streamUrl: res.audioUrl, duration: 0 }; // Duration loads natively in HTML audio
+    if (res.success && res.data && res.data.streamUrl) {
+      return { streamUrl: res.data.streamUrl, duration: res.data.duration || 0 };
     }
     
     return null;
