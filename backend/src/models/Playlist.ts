@@ -9,6 +9,7 @@ export interface IPlaylist extends Document {
   tracks: Types.ObjectId[];
   totalTracks: number;
   isPublic: boolean;
+  importStatus: string;
 }
 
 const playlistSchema = new Schema<IPlaylist>(
@@ -21,6 +22,7 @@ const playlistSchema = new Schema<IPlaylist>(
     tracks: [{ type: Schema.Types.ObjectId, ref: "Track" }],
     totalTracks: { type: Number, default: 0 },
     isPublic: { type: Boolean, default: true },
+    importStatus: { type: String, enum: ["pending", "importing", "completed", "failed"], default: "completed" }
   },
   { timestamps: true }
 );

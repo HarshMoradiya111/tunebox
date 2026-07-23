@@ -16,13 +16,8 @@ frontend/out/
 backend/dist/
 
 # Audio library (large files, not for git)
-library/*.mp3
-library/*.m4a
-library/*.wav
-library/*.flac
-library/*.ogg
-library/*.webm
-!library/.gitkeep
+library/
+backend/library/
 
 # IDE
 .vscode/

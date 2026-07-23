@@ -77,6 +77,7 @@ export interface ApiPlaylistDetail {
   owner: string;
   tracks: ApiTrack[];
   totalTracks: number;
+  importStatus?: "pending" | "importing" | "completed" | "failed";
 }
 
 export interface ApiResponse<T> {
