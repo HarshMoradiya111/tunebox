@@ -64,7 +64,7 @@ interface PlayerActions {
   toggleShuffle: () => void;
   cycleRepeat: () => void;
   // Player ref
-  playerRef: React.RefObject<ReactPlayer | null>;
+  playerRef: any;
 }
 
 type PlayerContextType = PlayerState & PlayerActions;
@@ -76,7 +76,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 // --- Provider ---
 
 export function PlayerProvider({ children }: { children: ReactNode }) {
-  const playerRef = useRef<ReactPlayer | null>(null);
+  const playerRef = useRef<any>(null);
 
   const [currentTrack, setCurrentTrack] = useState<PlayerTrack | null>(null);
   const [queue, setQueue] = useState<PlayerTrack[]>([]);
@@ -160,7 +160,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   );
 
   // --- Audio event handlers ---
-  const onProgress = (state: { playedSeconds: number }) => {
+  const onProgress = (state: any) => {
     setCurrentTime(state.playedSeconds);
   };
   
@@ -416,9 +416,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             height="0"
             config={{
               youtube: {
-                playerVars: { autoplay: 1, controls: 0 }
+                playerVars: { autoplay: 1, controls: 0 } as any
               }
-            }}
+            } as any}
           />
         )}
       </div>
