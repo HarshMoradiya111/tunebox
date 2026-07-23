@@ -102,7 +102,7 @@ router.post("/stream", async (req: Request, res: Response): Promise<any> => {
     const searchQuery = `${title} ${artist} audio`;
 
     // 2. Search YouTube programmatically
-    const searchResults = await ytStream.search(searchQuery);
+    const searchResults: any[] = await ytStream.search(searchQuery);
     if (!searchResults || searchResults.length === 0) {
       return res.status(404).json({ success: false, message: 'Song audio track not found' });
     }
