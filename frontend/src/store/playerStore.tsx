@@ -386,6 +386,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     playerRef,
   };
 
+  const Player = ReactPlayer as any;
+
   const currentStreamUrl = currentTrack?.streamUrl 
     ? (currentTrack.streamUrl.startsWith("http") ? currentTrack.streamUrl : `${API_BASE}${currentTrack.streamUrl}`) 
     : undefined;
@@ -400,8 +402,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       {/* Hidden ReactPlayer for audio/video streaming */}
       <div style={{ display: "none" }}>
         {mounted && (
-          // @ts-ignore
-          <ReactPlayer
+          <Player
             ref={playerRef}
             url={currentStreamUrl}
             playing={isPlaying}
