@@ -110,7 +110,7 @@ export default async function PlaylistPage({ params }: PlaylistPageProps) {
         {/* Track Rows */}
         <div className="flex flex-col gap-1 mt-2">
           {tracks.map((track, index) => (
-            <TrackRow key={track.id} track={track} index={index} />
+            <TrackRow key={track.id} track={track} index={index} allTracks={tracks} />
           ))}
         </div>
       </div>
