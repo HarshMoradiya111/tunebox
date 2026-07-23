@@ -60,6 +60,7 @@ router.get("/:filename", (req: Request, res: Response, next: NextFunction) => {
         "Content-Length": chunkSize,
         "Content-Type": contentType,
         "Cache-Control": "public, max-age=86400",
+        "Access-Control-Allow-Origin": process.env.FRONTEND_URL && process.env.FRONTEND_URL !== "*" ? process.env.FRONTEND_URL : "*",
       });
 
       const stream = fs.createReadStream(filePath, { start, end });
@@ -71,6 +72,7 @@ router.get("/:filename", (req: Request, res: Response, next: NextFunction) => {
         "Content-Type": contentType,
         "Accept-Ranges": "bytes",
         "Cache-Control": "public, max-age=86400",
+        "Access-Control-Allow-Origin": process.env.FRONTEND_URL && process.env.FRONTEND_URL !== "*" ? process.env.FRONTEND_URL : "*",
       });
 
       const stream = fs.createReadStream(filePath);
