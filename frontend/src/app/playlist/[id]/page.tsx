@@ -34,7 +34,7 @@ export default async function PlaylistPage({ params }: PlaylistPageProps) {
 
     // Map API tracks to MockTrack shape for the TrackRow component
     if (playlist.tracks && playlist.tracks.length > 0) {
-      tracks = playlist.tracks.map((t, i) => ({
+      tracks = playlist.tracks.map((t: any) => ({
         id: t._id || t.spotifyId,
         spotifyId: t.spotifyId,
         title: t.title,
@@ -43,6 +43,7 @@ export default async function PlaylistPage({ params }: PlaylistPageProps) {
         albumArt: t.albumArt,
         duration: Math.round(t.duration / 1000), // ms to seconds
         dateAdded: "Recently",
+        streamUrl: t.streamUrl,
       }));
     }
   } catch {

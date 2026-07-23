@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import mongoose from "mongoose";
 import { Playlist, Track } from "../models";
 import { getPlaylist } from "../services";
 
@@ -73,7 +74,33 @@ export async function getPlaylistById(
       .populate("tracks")
       .lean();
 
-    res.json({ success: true, source: "spotify", data: savedPlaylist });
+    // --------------------------------------------------------
+    // PHASE 7: Pre-built Playlists - Attach stream URLs from Songs
+    // --------------------------------------------------------
+    let playlistToReturn = savedPlaylist || cached;
+    
+    if (playlistToReturn && playlistToReturn.tracks && playlistToReturn.tracks.length > 0) {
+      // Find all ready songs for these tracks
+      const trackSpotifyIds = playlistToReturn.tracks.map((t: any) => t.spotifyId);
+      const readySongs = await mongoose.model("Song").find({
+        spotifyTrackId: { $in: trackSpotifyIds },
+        status: "ready"
+      }).lean();
+
+      // Create a map of spotifyTrackId -> streamUrl
+      const streamUrlMap = new Map(readySongs.map((s: any) => [s.spotifyTrackId, s.streamUrl]));
+
+      // Attach streamUrl to each track
+      playlistToReturn = {
+        ...playlistToReturn,
+        tracks: playlistToReturn.tracks.map((t: any) => ({
+          ...t,
+          streamUrl: streamUrlMap.get(t.spotifyId) || undefined
+        }))
+      };
+    }
+
+    res.json({ success: true, source: cached ? "cache" : "spotify", data: playlistToReturn });
   } catch (error) {
     next(error);
   }

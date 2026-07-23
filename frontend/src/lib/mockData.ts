@@ -7,6 +7,7 @@ export interface MockTrack {
   albumArt: string;
   duration: number; // seconds
   dateAdded: string;
+  streamUrl?: string;
 }
 
 export interface MockMediaItem {

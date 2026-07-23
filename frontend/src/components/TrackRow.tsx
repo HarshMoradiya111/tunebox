@@ -22,8 +22,7 @@ function mockToPlayerTrack(t: MockTrack): PlayerTrack {
     album: t.album,
     albumArt: t.albumArt,
     duration: t.duration,
-    // streamUrl will be set by Phase 6 fetch-on-miss logic
-    streamUrl: undefined,
+    streamUrl: t.streamUrl, // From Phase 7 pre-fetched cache
   };
 }
 
