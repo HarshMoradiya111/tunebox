@@ -54,22 +54,21 @@ export async function fetchSong(
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
-    // Fetch stream via yt-stream
-    const ytStream = require("yt-stream");
+    // Fetch stream via yt-search and ytdl-core
+    const ytSearch = require("yt-search");
+    const ytdl = require("@distube/ytdl-core");
     const searchQuery = `${title} ${artist} audio`;
-    const searchResults: any[] = await ytStream.search(searchQuery);
+    const searchResults = await ytSearch(searchQuery);
     
-    if (!searchResults || searchResults.length === 0) {
+    if (!searchResults || !searchResults.videos || searchResults.videos.length === 0) {
       await Song.updateOne({ _id: songDoc._id }, { status: "failed", errorMessage: "Song not found on YouTube" });
       res.status(404).json({ success: false, error: "Song audio track not found" });
       return;
     }
 
-    const videoId = searchResults[0].id;
-    const streamInfo = await ytStream.getInfo(videoId);
-    const audioStream = streamInfo.formats.find((format: any) => 
-      format.mimeType && format.mimeType.includes('audio/')
-    );
+    const videoUrl = searchResults.videos[0].url;
+    const streamInfo = await ytdl.getInfo(videoUrl);
+    const audioStream = ytdl.chooseFormat(streamInfo.formats, { quality: "highestaudio" });
 
     if (!audioStream || !audioStream.url) {
       await Song.updateOne({ _id: songDoc._id }, { status: "failed", errorMessage: "Audio stream unavailable" });

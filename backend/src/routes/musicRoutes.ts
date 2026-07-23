@@ -102,21 +102,22 @@ router.post("/stream", async (req: Request, res: Response): Promise<any> => {
     const searchQuery = `${title} ${artist} audio`;
 
     // 2. Search YouTube programmatically
-    const searchResults: any[] = await ytStream.search(searchQuery);
-    if (!searchResults || searchResults.length === 0) {
+    const ytSearch = require("yt-search");
+    const ytdl = require("@distube/ytdl-core");
+    const searchResults = await ytSearch(searchQuery);
+    
+    if (!searchResults || !searchResults.videos || searchResults.videos.length === 0) {
       return res.status(404).json({ success: false, message: 'Song audio track not found' });
     }
 
-    // Grab the first video result ID
-    const videoId = searchResults[0].id;
+    // Grab the first video result URL
+    const videoUrl = searchResults.videos[0].url;
 
     // 3. Extract the direct raw audio formats
-    const streamInfo = await ytStream.getInfo(videoId);
+    const streamInfo = await ytdl.getInfo(videoUrl);
     
     // Filter out video tracks to find the lightweight .mp4/.webm audio stream URL
-    const audioStream = streamInfo.formats.find((format: any) => 
-      format.mimeType && format.mimeType.includes('audio/')
-    );
+    const audioStream = ytdl.chooseFormat(streamInfo.formats, { quality: "highestaudio" });
 
     if (!audioStream || !audioStream.url) {
       return res.status(404).json({ success: false, message: 'Direct audio stream url unavailable' });

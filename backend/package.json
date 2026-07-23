@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1093.0",
+    "@distube/ytdl-core": "^4.16.12",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.2",
     "@types/morgan": "^1.9.9",
@@ -24,8 +25,9 @@
     "mongoose": "^8.14.1",
     "morgan": "^1.10.0",
     "music-metadata": "^11.14.0",
+    "play-dl": "^1.9.7",
     "typescript": "^5.8.3",
-    "yt-stream": "^1.7.4"
+    "yt-search": "^2.13.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.10",
