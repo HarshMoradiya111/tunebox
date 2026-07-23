@@ -400,6 +400,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       {/* Hidden ReactPlayer for audio/video streaming */}
       <div style={{ display: "none" }}>
         {mounted && (
+          // @ts-ignore
           <ReactPlayer
             ref={playerRef}
             url={currentStreamUrl}
