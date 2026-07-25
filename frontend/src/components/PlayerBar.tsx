@@ -220,9 +220,9 @@ export default function PlayerBar() {
         }}
       >
         {currentTrack ? (
-          <>
+          <div className="flex items-center justify-between w-full min-w-0 gap-2">
             <div 
-              className="relative w-12 h-12 md:w-14 md:h-14 rounded-md overflow-hidden bg-[#282828] shrink-0 cursor-pointer group"
+              className="relative w-10 h-10 md:w-14 md:h-14 rounded-md overflow-hidden bg-[#282828] shrink-0 cursor-pointer group"
               onClick={(e) => {
                 e.stopPropagation();
                 setIsNowPlayingOpen(true);
@@ -235,46 +235,56 @@ export default function PlayerBar() {
                 className="object-cover group-hover:brightness-50 transition-all"
               />
               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <Maximize2 className="w-5 h-5 text-white" />
+                <Maximize2 className="w-4 h-4 text-white" />
               </div>
             </div>
-            <div className="flex flex-col min-w-0 flex-1">
-              <span className="text-white text-sm font-medium hover:underline truncate cursor-pointer">
+
+            <div className="flex flex-col min-w-0 flex-1 overflow-hidden">
+              <span className="text-white text-xs md:text-sm font-semibold truncate cursor-pointer">
                 {currentTrack.title}
               </span>
-              <Link href={`/artist/${encodeURIComponent(currentTrack.artist)}`} className="text-[#b3b3b3] text-xs hover:underline truncate cursor-pointer" onClick={(e) => e.stopPropagation()}>
+              <Link href={`/artist/${encodeURIComponent(currentTrack.artist)}`} className="text-[#b3b3b3] text-[11px] md:text-xs truncate cursor-pointer" onClick={(e) => e.stopPropagation()}>
                 {currentTrack.artist}
               </Link>
             </div>
-            <button
-              onClick={(e) => { e.stopPropagation(); handleToggleLike(); }}
-              aria-label={isLiked ? "Remove from liked songs" : "Save to your liked songs"}
-              className={`p-3 md:p-1.5 rounded-full hover:scale-105 transition-transform shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center ${
-                isLiked ? "text-[#1db954]" : "text-[#b3b3b3] hover:text-white"
-              }`}
-            >
-              <Heart className={`w-5 h-5 md:w-4 md:h-4 ${isLiked ? "fill-current" : ""}`} />
-            </button>
-            {/* Mobile Play/Pause Button */}
-            <button
-              onClick={(e) => { e.stopPropagation(); togglePlay(); }}
-              disabled={!currentTrack}
-              aria-label={isPlaying ? "Pause" : "Play"}
-              className="md:hidden shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center text-white disabled:opacity-50"
-            >
-              {isLoading ? (
-                <Loader2 className="w-6 h-6 animate-spin" aria-hidden="true" />
-              ) : isPlaying ? (
-                <Pause className="w-6 h-6 fill-current" aria-hidden="true" />
-              ) : (
-                <Play className="w-6 h-6 fill-current" aria-hidden="true" />
-              )}
-            </button>
-          </>
+
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                onClick={(e) => { e.stopPropagation(); handleToggleLike(); }}
+                aria-label={isLiked ? "Remove from liked songs" : "Save to your liked songs"}
+                className={`p-2 rounded-full hover:scale-105 transition-transform flex items-center justify-center ${
+                  isLiked ? "text-[#1db954]" : "text-[#b3b3b3] hover:text-white"
+                }`}
+              >
+                <Heart className={`w-5 h-5 md:w-4 md:h-4 ${isLiked ? "fill-current" : ""}`} />
+              </button>
+
+              {/* Mobile Play/Pause Button */}
+              <button
+                onClick={(e) => { e.stopPropagation(); togglePlay(); }}
+                disabled={!currentTrack}
+                aria-label={isPlaying ? "Pause" : "Play"}
+                className="md:hidden p-2 text-white disabled:opacity-50 flex items-center justify-center shrink-0"
+              >
+                {isLoading ? (
+                  <Loader2 className="w-6 h-6 animate-spin text-white" aria-hidden="true" />
+                ) : isPlaying ? (
+                  <Pause className="w-6 h-6 fill-current text-white" aria-hidden="true" />
+                ) : (
+                  <Play className="w-6 h-6 fill-current text-white" aria-hidden="true" />
+                )}
+              </button>
+            </div>
+          </div>
         ) : (
-          <div className="flex items-center gap-3 text-[#b3b3b3] text-sm">
-            <div className="w-14 h-14 rounded-md bg-[#282828]" />
-            <span className="text-xs">No track selected</span>
+          <div className="flex items-center justify-between w-full text-[#b3b3b3]">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-md bg-[#282828]" />
+              <span className="text-xs font-medium">No track selected</span>
+            </div>
+            <button disabled className="md:hidden p-2 text-white/40">
+              <Play className="w-6 h-6 fill-current" />
+            </button>
           </div>
         )}
       </div>
