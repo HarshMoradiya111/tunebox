@@ -116,6 +116,20 @@ export default function Sidebar() {
             </div>
           </Link>
 
+          {/* Upload Music Action */}
+          <Link
+            href="/upload"
+            className="flex items-center gap-3 p-2 rounded-md hover:bg-[#1a1a1a] transition-colors group mb-2"
+          >
+            <div className="w-10 h-10 rounded bg-[#282828] group-hover:bg-[#1a1a1a] flex items-center justify-center transition-colors">
+              <Plus className="w-5 h-5 text-[#b3b3b3] group-hover:text-white transition-colors" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-white text-sm font-medium group-hover:underline">Upload Music</span>
+              <span className="text-xs text-[#b3b3b3]">Local MP3 Files</span>
+            </div>
+          </Link>
+
           {/* Scrollable Playlist List */}
           <div className="flex-1 overflow-y-auto flex flex-col gap-1 pr-1 border-t border-[#282828] pt-2">
             {allPlaylists.map((pl) => (

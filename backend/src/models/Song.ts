@@ -15,6 +15,7 @@ export interface ISong extends Document {
   format: string; // mp3, m4a, etc.
   status: SongStatus;
   errorMessage?: string;
+  cloudinaryPublicId?: string;
 }
 
 const songSchema = new Schema<ISong>(
@@ -35,6 +36,7 @@ const songSchema = new Schema<ISong>(
       default: "pending",
     },
     errorMessage: { type: String },
+    cloudinaryPublicId: { type: String },
   },
   { timestamps: true }
 );

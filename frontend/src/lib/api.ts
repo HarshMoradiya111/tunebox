@@ -165,6 +165,20 @@ export interface ApiSong {
   errorMessage?: string;
 }
 
+/** Helper to map ApiSong to PlayerTrack */
+export function mapSongToPlayerTrack(song: ApiSong): import("../store/playerStore").PlayerTrack {
+  return {
+    id: song._id,
+    spotifyId: song.spotifyTrackId,
+    title: song.title,
+    artist: song.artist,
+    album: song.album,
+    albumArt: song.albumArt,
+    duration: song.duration,
+    streamUrl: song.streamUrl,
+  };
+}
+
 export interface FetchSongResponse {
   success: boolean;
   source: "cache" | "in-progress" | "queued";
@@ -217,4 +231,12 @@ export async function resolveTrackStream(params: {
     console.error("Failed to resolve stream:", error);
     return null;
   }
+}
+
+/** DELETE /api/upload/:songId — delete a locally uploaded track */
+export async function deleteUploadedTrack(songId: string): Promise<{ success: boolean }> {
+  const res = await apiFetch<{ success: boolean }>(`/upload/${songId}`, {
+    method: "DELETE",
+  });
+  return res;
 }

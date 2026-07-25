@@ -1,10 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { Play, Pause, Heart, MoreHorizontal, ListPlus } from "lucide-react";
+import { Play, Pause, Heart, MoreHorizontal, ListPlus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { MockTrack } from "@/lib/mockData";
 import { usePlayer, PlayerTrack } from "@/store/playerStore";
+import { deleteUploadedTrack } from "@/lib/api";
+import { useRouter } from "next/navigation";
 
 interface TrackRowProps {
   track: MockTrack;
@@ -27,9 +29,11 @@ function mockToPlayerTrack(t: MockTrack): PlayerTrack {
 }
 
 export default function TrackRow({ track, index, allTracks }: TrackRowProps) {
-  const { currentTrack, isPlaying, playTrack, playQueue, togglePlay, addToQueue } =
+  const { currentTrack, isPlaying, playTrack, playQueue, togglePlay, addToQueue, pause } =
     usePlayer();
   const [isLiked, setIsLiked] = useState(false);
+  const [isDeleted, setIsDeleted] = useState(false);
+  const router = useRouter();
 
   const isCurrentTrack = currentTrack?.id === track.id || currentTrack?.spotifyId === track.spotifyId;
   const isActive = isCurrentTrack && isPlaying;
@@ -49,6 +53,25 @@ export default function TrackRow({ track, index, allTracks }: TrackRowProps) {
       playTrack(mockToPlayerTrack(track));
     }
   };
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (window.confirm("Are you sure you want to delete this track?")) {
+      try {
+        await deleteUploadedTrack(track.id);
+        if (isCurrentTrack && isPlaying) {
+          pause();
+        }
+        setIsDeleted(true);
+        router.refresh(); // Sync server state
+      } catch (err) {
+        console.error("Failed to delete track:", err);
+        alert("Failed to delete track. Please try again.");
+      }
+    }
+  };
+
+  if (isDeleted) return null;
 
   return (
     <div
@@ -108,6 +131,15 @@ export default function TrackRow({ track, index, allTracks }: TrackRowProps) {
 
       {/* Column 5: Heart, Duration & More */}
       <div className="flex items-center justify-end gap-3 text-xs">
+        {track.spotifyId?.startsWith("local-") && (
+          <button
+            onClick={handleDelete}
+            className="opacity-0 group-hover:opacity-100 text-[#b3b3b3] hover:text-red-500 transition-opacity"
+            title="Delete local track"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        )}
         <button
           onClick={() => setIsLiked(!isLiked)}
           className={`opacity-0 group-hover:opacity-100 transition-opacity ${

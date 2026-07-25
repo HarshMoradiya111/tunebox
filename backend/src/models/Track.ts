@@ -1,7 +1,7 @@
 import mongoose, { Document, Schema } from "mongoose";
 
 export interface ITrack extends Document {
-  spotifyId: string;
+  spotifyId?: string;
   title: string;
   artist: string;
   album: string;
@@ -10,11 +10,14 @@ export interface ITrack extends Document {
   trackNumber: number;
   previewUrl?: string;
   streamUrl?: string;
+  audioFileURL?: string;
+  source?: string;
+  uploadedAt?: Date;
 }
 
 const trackSchema = new Schema<ITrack>(
   {
-    spotifyId: { type: String, required: true, unique: true, index: true },
+    spotifyId: { type: String, unique: true, index: true, sparse: true },
     title: { type: String, required: true },
     artist: { type: String, required: true },
     album: { type: String, required: true },
@@ -23,6 +26,9 @@ const trackSchema = new Schema<ITrack>(
     trackNumber: { type: Number, default: 1 },
     previewUrl: { type: String },
     streamUrl: { type: String, default: "" },
+    audioFileURL: { type: String },
+    source: { type: String, default: "search" },
+    uploadedAt: { type: Date, default: Date.now },
   },
   { timestamps: true }
 );

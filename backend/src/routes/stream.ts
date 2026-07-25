@@ -26,6 +26,11 @@ router.get("/:filename", async (req: Request, res: Response, next: NextFunction)
         const parts = safeName.replace(".m4a", "").split("-");
         const spotifyTrackId = parts[parts.length - 1];
         
+        if (spotifyTrackId.startsWith("local-")) {
+          res.status(404).json({ success: false, error: "Local file not found on disk" });
+          return;
+        }
+        
         const song = await Song.findOne({ spotifyTrackId });
         if (song) {
           console.log(`[Stream] File missing for ${song.title}. Auto-redownloading...`);
