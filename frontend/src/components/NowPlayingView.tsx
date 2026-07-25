@@ -1,10 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { ChevronDown, Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Loader2 } from "lucide-react";
+import { ChevronDown, Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Loader2, FolderPlus } from "lucide-react";
 import { usePlayer } from "@/store/playerStore";
 import { useState } from "react";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
+import dynamic from "next/dynamic";
+
+const AddToPlaylistModal = dynamic(() => import("./AddToPlaylistModal"), { ssr: false });
 
 interface NowPlayingViewProps {
   isOpen: boolean;
@@ -36,6 +39,7 @@ export default function NowPlayingView({ isOpen, onClose }: NowPlayingViewProps)
   } = usePlayer();
 
   const [isDraggingSeek, setIsDraggingSeek] = useState(false);
+  const [isPlaylistModalOpen, setIsPlaylistModalOpen] = useState(false);
   const focusRef = useFocusTrap(isOpen, onClose);
 
   if (!isOpen || !currentTrack) return null;
@@ -79,12 +83,19 @@ export default function NowPlayingView({ isOpen, onClose }: NowPlayingViewProps)
         </div>
 
         <div className="w-full max-w-lg px-4 flex flex-col">
-          <div className="mb-6 flex justify-between items-end">
+          <div className="mb-6 flex justify-between items-center">
             <div className="flex flex-col overflow-hidden mr-4">
               <h1 className="text-white text-3xl md:text-4xl font-bold truncate mb-1">{currentTrack.title}</h1>
               <h2 className="text-[#b3b3b3] text-xl truncate">{currentTrack.artist}</h2>
             </div>
-            {/* Could add large Like button here */}
+            <button
+              onClick={() => setIsPlaylistModalOpen(true)}
+              aria-label="Add to playlist"
+              title="Add to playlist"
+              className="p-3 text-[#b3b3b3] hover:text-white transition-colors rounded-full hover:bg-white/10 shrink-0"
+            >
+              <FolderPlus className="w-7 h-7" />
+            </button>
           </div>
 
           {/* Seek Bar */}
@@ -163,6 +174,9 @@ export default function NowPlayingView({ isOpen, onClose }: NowPlayingViewProps)
           </div>
         </div>
       </div>
+      {isPlaylistModalOpen && currentTrack && (
+        <AddToPlaylistModal trackId={currentTrack.id} onClose={() => setIsPlaylistModalOpen(false)} />
+      )}
     </div>
   );
 }

@@ -19,7 +19,8 @@ import {
   Loader2,
   Timer,
   Maximize2,
-  Ear
+  Ear,
+  FolderPlus
 } from "lucide-react";
 import { usePlayer } from "@/store/playerStore";
 import { useState, useEffect } from "react";
@@ -28,6 +29,7 @@ import { useFocusTrap } from "@/hooks/useFocusTrap";
 
 const QueuePanel = dynamic(() => import("./QueuePanel"), { ssr: false });
 const NowPlayingView = dynamic(() => import("./NowPlayingView"), { ssr: false });
+const AddToPlaylistModal = dynamic(() => import("./AddToPlaylistModal"), { ssr: false });
 
 function formatTime(seconds: number): string {
   if (!seconds || isNaN(seconds)) return "0:00";
@@ -73,6 +75,7 @@ export default function PlayerBar() {
   const [sleepTimeRemaining, setSleepTimeRemaining] = useState<number | null>(null);
   const [isSleepMenuOpen, setIsSleepMenuOpen] = useState(false);
   const sleepFocusRef = useFocusTrap(isSleepMenuOpen, () => setIsSleepMenuOpen(false));
+  const [isAddToPlaylistOpen, setIsAddToPlaylistOpen] = useState(false);
 
   useEffect(() => {
     setIsLiked(currentTrack?.isLiked || false);
@@ -265,7 +268,7 @@ export default function PlayerBar() {
               </Link>
             </div>
 
-            <div className="flex items-center gap-1 shrink-0 mr-3 md:mr-0">
+            <div className="flex items-center gap-0.5 shrink-0 mr-3 md:mr-0">
               <button
                 onClick={(e) => { e.stopPropagation(); handleToggleLike(); }}
                 aria-label={isLiked ? "Remove from liked songs" : "Save to your liked songs"}
@@ -273,6 +276,16 @@ export default function PlayerBar() {
                   }`}
               >
                 <Heart className={`w-4 h-4 ${isLiked ? "fill-current" : ""}`} />
+              </button>
+
+              {/* Add to Playlist button */}
+              <button
+                onClick={(e) => { e.stopPropagation(); setIsAddToPlaylistOpen(true); }}
+                aria-label="Add to playlist"
+                title="Add to playlist"
+                className="p-1 rounded-full hover:scale-105 transition-transform text-[#b3b3b3] hover:text-white flex items-center justify-center"
+              >
+                <FolderPlus className="w-4 h-4" />
               </button>
 
               {/* Mobile Prev Track Button */}
@@ -495,6 +508,9 @@ export default function PlayerBar() {
 
       <QueuePanel isOpen={isQueueOpen} onClose={() => setIsQueueOpen(false)} />
       <NowPlayingView isOpen={isNowPlayingOpen} onClose={() => setIsNowPlayingOpen(false)} />
+      {isAddToPlaylistOpen && currentTrack && (
+        <AddToPlaylistModal trackId={currentTrack.id} onClose={() => setIsAddToPlaylistOpen(false)} />
+      )}
     </footer>
   );
 }
