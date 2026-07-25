@@ -54,6 +54,7 @@ export default function PlayerBar() {
     toggleShuffle,
     cycleRepeat,
     toggleNormalizeVolume,
+    pause,
   } = usePlayer();
 
   const [isLiked, setIsLiked] = useState(false);
