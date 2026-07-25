@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   Home,
@@ -13,18 +14,22 @@ import {
   Compass,
   Sparkles,
   Upload,
-  Link2,
+  ListVideo,
 } from "lucide-react";
 import { usePlayer } from "@/store/playerStore";
-import { fetchAutoPlaylists } from "@/lib/api";
+import { fetchAutoPlaylists, getUserPlaylists } from "@/lib/api";
+import { CreatePlaylistModal } from "./CreatePlaylistModal";
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { savedPlaylists } = usePlayer();
   const [autoPlaylists, setAutoPlaylists] = useState<any[]>([]);
   const [likedCount, setLikedCount] = useState<number>(0);
   const [showPlusMenu, setShowPlusMenu] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const [savedPlaylists, setSavedPlaylists] = useState<any[]>([]);
+  const [userPlaylists, setUserPlaylists] = useState<any[]>([]);
 
   useEffect(() => {
     fetchAutoPlaylists().then(setAutoPlaylists).catch(console.error);
@@ -38,7 +43,35 @@ export default function Sidebar() {
     fetchCount();
     
     window.addEventListener("like_toggled", fetchCount);
-    return () => window.removeEventListener("like_toggled", fetchCount);
+    
+    // Existing saved playlists
+    const updateSavedPlaylists = () => {
+      const saved = localStorage.getItem("savedPlaylists");
+      if (saved) {
+        setSavedPlaylists(JSON.parse(saved));
+      } else {
+        setSavedPlaylists([]);
+      }
+    };
+    
+    updateSavedPlaylists();
+    window.addEventListener("saved_playlists_changed", updateSavedPlaylists);
+    
+    // User created playlists
+    const fetchUserPlaylists = async () => {
+      try {
+        const lists = await getUserPlaylists();
+        setUserPlaylists(lists || []);
+      } catch (err) {
+        console.error("Failed to fetch user playlists", err);
+      }
+    };
+    fetchUserPlaylists();
+    
+    return () => {
+      window.removeEventListener("like_toggled", fetchCount);
+      window.removeEventListener("saved_playlists_changed", updateSavedPlaylists);
+    };
   }, []);
 
   // Close menu on click outside
@@ -55,10 +88,8 @@ export default function Sidebar() {
   const mainNav = [
     { name: "Home", href: "/", icon: Home },
     { name: "Search", href: "/search", icon: Search },
-    { name: "Your Library", href: "/playlist/liked-songs", icon: Library },
+    { name: "Your Library", href: "/liked", icon: Library },
   ];
-
-  const allPlaylists = [...savedPlaylists];
 
   return (
     <>
@@ -140,7 +171,7 @@ export default function Sidebar() {
           </div>
 
           {/* Scrollable Library & Playlist Items Container */}
-          <div className="flex-1 overflow-y-auto min-h-0 flex flex-col gap-1 pr-1 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto px-2 space-y-1 pb-4 custom-scrollbar">
             {/* Quick Liked Songs Pill */}
             <Link
               href="/liked"
@@ -154,22 +185,6 @@ export default function Sidebar() {
               <div className="flex flex-col min-w-0 flex-1">
                 <span className="text-white text-sm font-medium group-hover:underline truncate">Liked Songs</span>
                 <span className="text-xs text-[#b3b3b3]">Playlist • {likedCount} {likedCount === 1 ? 'song' : 'songs'}</span>
-              </div>
-            </Link>
-
-            {/* My Uploads Pill */}
-            <Link
-              href="/library/uploads"
-              className={`flex items-center gap-3 p-2 rounded-md transition-colors group shrink-0 ${
-                pathname === "/library/uploads" ? "bg-[#282828]" : "hover:bg-[#1a1a1a]"
-              }`}
-            >
-              <div className="w-9 h-9 rounded bg-gradient-to-br from-green-400 to-[#1db954] flex items-center justify-center text-black shrink-0 shadow-sm">
-                <Music2 className="w-4 h-4 fill-current" />
-              </div>
-              <div className="flex flex-col min-w-0 flex-1">
-                <span className="text-white text-sm font-medium group-hover:underline truncate">My Uploads</span>
-                <span className="text-xs text-[#b3b3b3]">Local Library</span>
               </div>
             </Link>
 
@@ -207,26 +222,87 @@ export default function Sidebar() {
               </div>
             )}
 
-            {/* Custom / Saved Playlists Section */}
-            {allPlaylists.length > 0 && (
+            {/* User Playlists List */}
+            {userPlaylists.length > 0 && (
               <div className="mt-2 pt-2 border-t border-[#282828]">
-                <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[#727272]">
-                  Your Playlists
+                <div className="flex items-center justify-between px-2 py-1 mb-1">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-[#727272]">
+                    My Playlists
+                  </div>
+                  <button 
+                    onClick={() => setShowCreateModal(true)}
+                    className="p-1 hover:bg-[#1a1a1a] hover:text-white rounded-full text-[#727272] transition-colors"
+                    title="Create Playlist"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
                 </div>
-                {allPlaylists.map((pl) => {
-                  const targetHref = `/playlist/${pl.id}`;
+                {userPlaylists.map((playlist) => {
+                  const targetHref = `/playlist/${playlist._id}`;
                   const isActive = pathname === targetHref;
                   return (
                     <Link
-                      key={pl.id}
+                      key={playlist._id}
                       href={targetHref}
-                      className={`block px-2.5 py-2 rounded-md text-xs transition-colors shrink-0 ${
+                      className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-xs transition-colors shrink-0 group ${
                         isActive
                           ? "bg-[#282828] text-white font-medium"
                           : "text-[#b3b3b3] hover:text-white hover:bg-[#1a1a1a]"
                       }`}
                     >
-                      <span className="truncate block">{pl.name}</span>
+                      <div className="w-8 h-8 bg-[#282828] rounded shadow-sm overflow-hidden shrink-0 flex items-center justify-center">
+                        {playlist.coverImage ? (
+                          <Image
+                            src={playlist.coverImage}
+                            alt={playlist.name}
+                            width={32}
+                            height={32}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <ListVideo className="w-4 h-4 text-[#b3b3b3]" />
+                        )}
+                      </div>
+                      <span className="truncate block flex-1">{playlist.name}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Saved from Spotify List */}
+            {savedPlaylists.length > 0 && (
+              <div className="mt-2 pt-2 border-t border-[#282828]">
+                <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[#727272]">
+                  Saved from Spotify
+                </div>
+                {savedPlaylists.map((playlist) => {
+                  const targetHref = `/playlist/${playlist.id}`;
+                  const isActive = pathname === targetHref;
+                  return (
+                    <Link
+                      key={playlist.id}
+                      href={targetHref}
+                      className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-xs transition-colors shrink-0 group ${
+                        isActive
+                          ? "bg-[#282828] text-white font-medium"
+                          : "text-[#b3b3b3] hover:text-white hover:bg-[#1a1a1a]"
+                      }`}
+                    >
+                      <div className="w-8 h-8 bg-[#282828] rounded shadow-sm overflow-hidden shrink-0 flex items-center justify-center">
+                        {playlist.coverImage ? (
+                          <Image
+                            src={playlist.coverImage}
+                            alt={playlist.name}
+                            width={32}
+                            height={32}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-[#b3b3b3] text-sm">♪</span>
+                        )}
+                      </div>
+                      <span className="truncate block flex-1">{playlist.name}</span>
                     </Link>
                   );
                 })}
@@ -255,6 +331,10 @@ export default function Sidebar() {
           );
         })}
       </div>
+
+      {showCreateModal && (
+        <CreatePlaylistModal onClose={() => setShowCreateModal(false)} />
+      )}
     </>
   );
 }

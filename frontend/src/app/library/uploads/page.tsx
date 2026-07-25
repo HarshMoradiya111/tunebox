@@ -6,6 +6,7 @@ import { PlayerTrack } from "@/store/playerStore";
 import TrackRow from "@/components/TrackRow";
 import { TrackItem } from "@/types";
 import { Music, Play, Shuffle, Download, CheckSquare, Square, Trash2, Tag, Filter } from "lucide-react";
+import VirtualizedTrackList from "@/components/VirtualizedTrackList";
 import { usePlayer } from "@/store/playerStore";
 
 // Convert PlayerTrack back to TrackItem for TrackRow compatibility
@@ -270,17 +271,12 @@ export default function UploadsPage() {
               </span>
             </div>
             {/* Tracks */}
-            {filteredTracks.map((track, idx) => (
-              <TrackRow 
-                key={track.id} 
-                track={track} 
-                index={idx} 
-                allTracks={filteredTracks}
-                selectable={selectionMode}
-                isSelected={selectedTrackIds.has(track.id)}
-                onToggleSelect={() => handleToggleSelect(track.id)}
-              />
-            ))}
+            <VirtualizedTrackList 
+              tracks={filteredTracks}
+              selectable={selectionMode}
+              selectedTrackIds={selectedTrackIds}
+              onToggleSelect={handleToggleSelect}
+            />
           </div>
         )}
       </div>

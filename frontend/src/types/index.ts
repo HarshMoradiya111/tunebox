@@ -23,6 +23,7 @@ export interface Playlist {
   tracks: Track[];
   totalTracks: number;
   isPublic: boolean;
+  isUserCreated?: boolean;
 }
 
 /** Represents a downloaded song ready for streaming */

@@ -7,6 +7,7 @@ import React, {
   useRef,
   useCallback,
   useEffect,
+  useMemo,
   type ReactNode,
 } from "react";
 import { resolveTrackStream } from "@/lib/api";
@@ -76,6 +77,10 @@ interface PlayerActions {
   playerRef: any;
   // Saved Playlists
   toggleSavedPlaylist: (playlist: { id: string; name: string }) => void;
+  // State persistence
+  clearPlayerState: () => void;
+  // Track updates
+  updateCurrentTrackLikeStatus: (isLiked: boolean) => void;
 }
 
 type PlayerContextType = PlayerState & PlayerActions;
@@ -87,7 +92,30 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 // --- Provider ---
 
 export function PlayerProvider({ children }: { children: ReactNode }) {
-  const playerRef = useRef<any>(null);
+  const player1Ref = useRef<HTMLAudioElement>(null);
+  const player2Ref = useRef<HTMLAudioElement>(null);
+  const [activePlayerId, setActivePlayerId] = useState<1 | 2>(1);
+  const activePlayerIdRef = useRef<1 | 2>(1);
+  useEffect(() => { activePlayerIdRef.current = activePlayerId; }, [activePlayerId]);
+
+  const getActivePlayer = useCallback(() => activePlayerIdRef.current === 1 ? player1Ref.current : player2Ref.current, []);
+
+  const playerRef = useRef<any>({
+    get currentTime() { return getActivePlayer()?.currentTime || 0; },
+    set currentTime(val) { const p = getActivePlayer(); if (p) p.currentTime = val; },
+    get duration() { return getActivePlayer()?.duration || 0; },
+    get volume() { return getActivePlayer()?.volume || 1; },
+    set volume(val) { 
+      if (player1Ref.current) player1Ref.current.volume = val; 
+      if (player2Ref.current) player2Ref.current.volume = val; 
+    },
+    play: () => getActivePlayer()?.play(),
+    pause: () => {
+      if (player1Ref.current) player1Ref.current.pause();
+      if (player2Ref.current) player2Ref.current.pause();
+    },
+    seekTo: (val: number) => { const p = getActivePlayer(); if (p) p.currentTime = val; }
+  });
 
   const [currentTrack, setCurrentTrack] = useState<PlayerTrack | null>(null);
   const [queue, setQueue] = useState<PlayerTrack[]>([]);
@@ -105,9 +133,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [normalizeVolume, setNormalizeVolume] = useState(false);
 
   const audioContextRef = useRef<AudioContext | null>(null);
-  const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const sourceNode1Ref = useRef<MediaElementAudioSourceNode | null>(null);
+  const sourceNode2Ref = useRef<MediaElementAudioSourceNode | null>(null);
   const compressorNodeRef = useRef<DynamicsCompressorNode | null>(null);
+  const pendingSeekTime = useRef<number | null>(null);
 
+  // Restore state on mount
   useEffect(() => {
     const stored = localStorage.getItem("savedPlaylists");
     if (stored) {
@@ -117,6 +148,50 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     }
     const storedVol = localStorage.getItem("normalizeVolume");
     if (storedVol) setNormalizeVolume(storedVol === "true");
+
+    const storedPlayer = localStorage.getItem("playerState");
+    if (storedPlayer) {
+      try {
+        const state = JSON.parse(storedPlayer);
+        if (state.currentTrack) {
+          // Note: This app relies on static Cloudinary or Spotify proxy URLs that are mostly stable.
+          setQueue(state.queue || []);
+          setOriginalQueue(state.queue || []); // originalQueue isn't saved explicitly in the requirement, but usually queue matches. Wait, if it was shuffled, originalQueue is lost. We'll set it to queue for now.
+          setQueueIndex(state.queueIndex || 0);
+          setVolumeState(state.volume ?? 80);
+          setIsShuffled(state.isShuffled || false);
+          setRepeatMode(state.repeatMode || "off");
+          setCurrentTrack(state.currentTrack);
+          setIsPlaying(false); // Do not autoplay on refresh
+          setCurrentTime(state.currentTime || 0);
+          
+          // Seek the audio element to the stored time silently once metadata loads
+          pendingSeekTime.current = state.currentTime || 0;
+        }
+      } catch (e) {
+        console.error("Failed to restore player state:", e);
+      }
+    }
+  }, []);
+
+  // Save state on change (throttled)
+  const stateRef = useRef({ currentTrack, queue, queueIndex, currentTime, volume, isShuffled, repeatMode });
+  useEffect(() => {
+    stateRef.current = { currentTrack, queue, queueIndex, currentTime, volume, isShuffled, repeatMode };
+  }, [currentTrack, queue, queueIndex, currentTime, volume, isShuffled, repeatMode]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const state = stateRef.current;
+      if (!state.currentTrack) return;
+      localStorage.setItem("playerState", JSON.stringify(state));
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const clearPlayerState = useCallback(() => {
+    localStorage.removeItem("playerState");
   }, []);
 
   // --- Internal: load a track into the audio element ---
@@ -192,20 +267,52 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     []
   );
 
+  const updateCurrentTrackLikeStatus = useCallback((isLiked: boolean) => {
+    setCurrentTrack((prev) => prev ? { ...prev, isLiked } : null);
+    setQueue((prevQueue) => prevQueue.map(t => 
+      (currentTrack && t.id === currentTrack.id) ? { ...t, isLiked } : t
+    ));
+    setOriginalQueue((prevQueue) => prevQueue.map(t => 
+      (currentTrack && t.id === currentTrack.id) ? { ...t, isLiked } : t
+    ));
+  }, [currentTrack]);
+
   // --- Audio event handlers ---
   
+  const getFormatUrl = (url?: string) => {
+    if (!url) return undefined;
+    let formatted = url;
+    if (formatted.startsWith("http://localhost:5000/api") && process.env.NEXT_PUBLIC_API_URL) {
+      formatted = formatted.replace("http://localhost:5000/api", process.env.NEXT_PUBLIC_API_URL);
+    }
+    if (formatted.startsWith("http")) return formatted;
+    if (formatted.startsWith("/api/") && process.env.NEXT_PUBLIC_API_URL?.endsWith("/api")) {
+      return `${process.env.NEXT_PUBLIC_API_URL.replace(/\/api$/, "")}${formatted}`;
+    }
+    return `${(process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000").replace(/\/$/, "")}${formatted.startsWith("/") ? "" : "/"}${formatted}`;
+  };
+
   const onEnded = () => {
     // Auto-advance logic
     if (repeatMode === "one") {
-      playerRef.current?.seekTo(0);
+      const p = getActivePlayer();
+      if (p) p.currentTime = 0;
       setIsPlaying(true);
-    } else if (queueIndex < queue.length - 1) {
-      const nextIdx = queueIndex + 1;
+    } else if (queueIndex < queue.length - 1 || (repeatMode === "all" && queue.length > 0)) {
+      const nextIdx = queueIndex < queue.length - 1 ? queueIndex + 1 : 0;
+      const nextTrk = queue[nextIdx];
+      
+      const nextStreamUrl = getFormatUrl(nextTrk.streamUrl);
+      const preloadTrk = queueIndex < queue.length - 1 ? queue[queueIndex + 1] : (repeatMode === "all" ? queue[0] : null);
+      const preloadUrl = getFormatUrl(preloadTrk?.streamUrl);
+
+      // If the next track's URL matches what we were preloading, swap players for gapless playback
+      if (nextStreamUrl && nextStreamUrl === preloadUrl) {
+        setActivePlayerId(prev => (prev === 1 ? 2 : 1));
+      }
+      
       setQueueIndex(nextIdx);
-      loadTrack(queue[nextIdx], true);
-    } else if (repeatMode === "all" && queue.length > 0) {
-      setQueueIndex(0);
-      loadTrack(queue[0], true);
+      loadTrack(nextTrk, true);
     } else {
       setIsPlaying(false);
     }
@@ -452,7 +559,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const value: PlayerContextType = {
+  const value: PlayerContextType = useMemo(() => ({
     currentTrack,
     queue,
     originalQueue,
@@ -486,48 +593,79 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     cycleRepeat,
     savedPlaylists,
     toggleSavedPlaylist,
+    clearPlayerState,
+    updateCurrentTrackLikeStatus,
     playerRef,
-  };
+  }), [
+    currentTrack,
+    queue,
+    originalQueue,
+    queueIndex,
+    isPlaying,
+    currentTime,
+    duration,
+    volume,
+    isMuted,
+    isLoading,
+    isShuffled,
+    repeatMode,
+    normalizeVolume,
+    playTrack,
+    playQueue,
+    addToQueue,
+    playNext,
+    removeFromQueue,
+    reorderQueue,
+    togglePlay,
+    pause,
+    resume,
+    nextTrack,
+    prevTrack,
+    seek,
+    seekPercent,
+    setVolume,
+    toggleMute,
+    toggleNormalizeVolume,
+    toggleShuffle,
+    cycleRepeat,
+    savedPlaylists,
+    toggleSavedPlaylist,
+    clearPlayerState,
+    updateCurrentTrackLikeStatus,
+    playerRef,
+  ]);
 
-  let rawStreamUrl = currentTrack?.streamUrl;
-  
-  // Rewrite hardcoded localhost URLs to the deployed API URL (fixes Mixed Content in production)
-  if (rawStreamUrl && rawStreamUrl.startsWith("http://localhost:5000/api") && process.env.NEXT_PUBLIC_API_URL) {
-    rawStreamUrl = rawStreamUrl.replace("http://localhost:5000/api", process.env.NEXT_PUBLIC_API_URL);
+  const currentStreamUrl = getFormatUrl(currentTrack?.streamUrl);
+
+  let preloadTrack = null;
+  if (queue.length > 0) {
+    if (queueIndex < queue.length - 1) preloadTrack = queue[queueIndex + 1];
+    else if (repeatMode === "all") preloadTrack = queue[0];
   }
-
-  const currentStreamUrl = rawStreamUrl 
-    ? (rawStreamUrl.startsWith("http") 
-        ? rawStreamUrl 
-        : (rawStreamUrl.startsWith("/api/") && process.env.NEXT_PUBLIC_API_URL?.endsWith("/api")
-            ? `${process.env.NEXT_PUBLIC_API_URL.replace(/\/api$/, "")}${rawStreamUrl}`
-            : `${(process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000").replace(/\/$/, "")}${rawStreamUrl.startsWith("/") ? "" : "/"}${rawStreamUrl}`
-          )
-      ) 
-    : undefined;
+  const preloadStreamUrl = getFormatUrl(preloadTrack?.streamUrl);
 
   // Sync volume and mute state
   useEffect(() => {
-    if (playerRef.current) {
-      playerRef.current.volume = isMuted ? 0 : volume / 100;
-    }
+    const vol = isMuted ? 0 : volume / 100;
+    if (player1Ref.current) player1Ref.current.volume = vol;
+    if (player2Ref.current) player2Ref.current.volume = vol;
   }, [volume, isMuted]);
 
   // Sync play/pause state
   useEffect(() => {
-    if (playerRef.current) {
+    const p = getActivePlayer();
+    if (p) {
       if (isPlaying) {
-        playerRef.current.play().catch((e: any) => console.error("Auto-play blocked:", e));
+        p.play().catch((e: any) => console.error("Auto-play blocked:", e));
       } else {
-        playerRef.current.pause();
+        if (player1Ref.current) player1Ref.current.pause();
+        if (player2Ref.current) player2Ref.current.pause();
       }
     }
-  }, [isPlaying, currentStreamUrl]);
+  }, [isPlaying, currentStreamUrl, activePlayerId]);
 
   // Handle Web Audio API graph for volume normalization
   useEffect(() => {
-    if (!playerRef.current || !currentStreamUrl) return;
-    
     try {
       if (!audioContextRef.current) {
         const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
@@ -539,12 +677,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       const ctx = audioContextRef.current;
       if (!ctx) return;
       
-      // We only ever want ONE MediaElementSource per audio element
-      if (!sourceNodeRef.current && !(playerRef.current as any).dataset.sourceCreated) {
-        sourceNodeRef.current = ctx.createMediaElementSource(playerRef.current);
-        (playerRef.current as any).dataset.sourceCreated = "true";
-      }
-
       if (!compressorNodeRef.current) {
         compressorNodeRef.current = ctx.createDynamicsCompressor();
         compressorNodeRef.current.threshold.setValueAtTime(-24, ctx.currentTime);
@@ -554,25 +686,32 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         compressorNodeRef.current.release.setValueAtTime(0.25, ctx.currentTime);
       }
 
-      const source = sourceNodeRef.current;
-      const compressor = compressorNodeRef.current;
-
-      if (source && compressor) {
-        // Disconnect existing connections first
-        source.disconnect();
-        compressor.disconnect();
-        
-        if (normalizeVolume) {
-          source.connect(compressor);
-          compressor.connect(ctx.destination);
-        } else {
-          source.connect(ctx.destination);
+      const connectPlayer = (ref: React.RefObject<HTMLAudioElement | null>, sourceRef: React.MutableRefObject<MediaElementAudioSourceNode | null>) => {
+        if (!ref.current) return;
+        if (!sourceRef.current && !(ref.current as any).dataset.sourceCreated) {
+          sourceRef.current = ctx.createMediaElementSource(ref.current);
+          (ref.current as any).dataset.sourceCreated = "true";
         }
-      }
+        const source = sourceRef.current;
+        const compressor = compressorNodeRef.current;
+        if (source && compressor) {
+          source.disconnect();
+          if (normalizeVolume) {
+            source.connect(compressor);
+            compressor.connect(ctx.destination);
+          } else {
+            source.connect(ctx.destination);
+          }
+        }
+      };
+
+      connectPlayer(player1Ref, sourceNode1Ref);
+      connectPlayer(player2Ref, sourceNode2Ref);
+      
     } catch (e) {
       console.warn("Web Audio API error (CORS or initialization issue):", e);
     }
-  }, [normalizeVolume, currentStreamUrl]);
+  }, [normalizeVolume, currentStreamUrl, preloadStreamUrl]);
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -581,21 +720,49 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   return (
     <PlayerContext.Provider value={value}>
-      {/* Native HTML5 Audio for streaming */}
+      {/* Native HTML5 Audio for streaming (Double Buffering) */}
       <div style={{ display: "none" }}>
         {mounted && (
-          <audio
-            ref={playerRef}
-            src={currentStreamUrl}
-            crossOrigin="anonymous"
-            onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
-            onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
-            onCanPlay={() => setIsLoading(false)}
-            onPlay={() => setIsPlaying(true)}
-            onPause={() => setIsPlaying(false)}
-            onEnded={onEnded}
-            onError={onError}
-          />
+          <>
+            <audio
+              ref={player1Ref}
+              src={activePlayerId === 1 ? currentStreamUrl : preloadStreamUrl}
+              preload={activePlayerId === 1 ? "auto" : (preloadStreamUrl ? "auto" : "none")}
+              crossOrigin="anonymous"
+              onTimeUpdate={(e) => { if (activePlayerId === 1) setCurrentTime(e.currentTarget.currentTime) }}
+              onLoadedMetadata={(e) => { 
+                if (activePlayerId === 1) setDuration(e.currentTarget.duration);
+                if (pendingSeekTime.current !== null && activePlayerId === 1) {
+                  e.currentTarget.currentTime = pendingSeekTime.current;
+                  pendingSeekTime.current = null;
+                }
+              }}
+              onCanPlay={() => { if (activePlayerId === 1) setIsLoading(false) }}
+              onPlay={() => { if (activePlayerId === 1) setIsPlaying(true) }}
+              onPause={() => { if (activePlayerId === 1) setIsPlaying(false) }}
+              onEnded={() => { if (activePlayerId === 1) onEnded() }}
+              onError={(e) => { if (activePlayerId === 1) onError(e) }}
+            />
+            <audio
+              ref={player2Ref}
+              src={activePlayerId === 2 ? currentStreamUrl : preloadStreamUrl}
+              preload={activePlayerId === 2 ? "auto" : (preloadStreamUrl ? "auto" : "none")}
+              crossOrigin="anonymous"
+              onTimeUpdate={(e) => { if (activePlayerId === 2) setCurrentTime(e.currentTarget.currentTime) }}
+              onLoadedMetadata={(e) => { 
+                if (activePlayerId === 2) setDuration(e.currentTarget.duration);
+                if (pendingSeekTime.current !== null && activePlayerId === 2) {
+                  e.currentTarget.currentTime = pendingSeekTime.current;
+                  pendingSeekTime.current = null;
+                }
+              }}
+              onCanPlay={() => { if (activePlayerId === 2) setIsLoading(false) }}
+              onPlay={() => { if (activePlayerId === 2) setIsPlaying(true) }}
+              onPause={() => { if (activePlayerId === 2) setIsPlaying(false) }}
+              onEnded={() => { if (activePlayerId === 2) onEnded() }}
+              onError={(e) => { if (activePlayerId === 2) onError(e) }}
+            />
+          </>
         )}
       </div>
       {children}

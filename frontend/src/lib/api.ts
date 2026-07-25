@@ -79,6 +79,7 @@ export interface ApiPlaylistDetail {
   tracks: ApiTrack[];
   totalTracks: number;
   importStatus?: "pending" | "importing" | "completed" | "failed";
+  isUserCreated?: boolean;
 }
 
 export interface ApiResponse<T> {
@@ -128,13 +129,55 @@ export async function searchMusic(query: string): Promise<ApiSearchResult[]> {
 }
 
 /** Fetch a playlist with tracks by Spotify ID */
-export async function fetchPlaylist(
-  spotifyId: string
-): Promise<ApiPlaylistDetail> {
-  const res = await apiFetch<ApiResponse<ApiPlaylistDetail>>(
-    `/playlist/${spotifyId}`
-  );
-  return res.data;
+export async function fetchPlaylist(id: string): Promise<ApiPlaylistDetail> {
+  const data = await apiFetch<any>(`/playlist/${id}`);
+  return data.data;
+}
+
+// --- User-Created Playlists ---
+
+export async function createUserPlaylist(name: string, description?: string): Promise<ApiPlaylistDetail> {
+  const data = await apiFetch<any>("/playlist", {
+    method: "POST",
+    body: JSON.stringify({ name, description }),
+  });
+  return data.data;
+}
+
+export async function getUserPlaylists(): Promise<ApiPlaylistDetail[]> {
+  const data = await apiFetch<any>("/playlist/user/created");
+  return data.data;
+}
+
+export async function addTrackToUserPlaylist(playlistId: string, trackId: string): Promise<ApiPlaylistDetail> {
+  const data = await apiFetch<any>(`/playlist/${playlistId}/tracks`, {
+    method: "POST",
+    body: JSON.stringify({ trackId }),
+  });
+  return data.data;
+}
+
+export async function removeTrackFromUserPlaylist(playlistId: string, trackId: string): Promise<ApiPlaylistDetail> {
+  const data = await apiFetch<any>(`/playlist/${playlistId}/tracks/${trackId}`, {
+    method: "DELETE",
+  });
+  return data.data;
+}
+
+export async function deleteUserPlaylist(playlistId: string): Promise<boolean> {
+  const res = await apiFetch<ApiResponse<any>>(`/playlist/${playlistId}`, {
+    method: "DELETE",
+  });
+  return res.success;
+}
+
+/** Rename user created playlist */
+export async function updatePlaylist(playlistId: string, name: string, description?: string): Promise<ApiPlaylistDetail | null> {
+  const res = await apiFetch<ApiResponse<ApiPlaylistDetail>>(`/playlist/${playlistId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ name, description }),
+  });
+  return res.data || null;
 }
 
 export async function fetchAutoPlaylists(): Promise<any[]> {

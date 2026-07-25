@@ -23,9 +23,11 @@ import {
 } from "lucide-react";
 import { usePlayer } from "@/store/playerStore";
 import { useState, useEffect } from "react";
-import QueuePanel from "./QueuePanel";
-import NowPlayingView from "./NowPlayingView";
+import dynamic from "next/dynamic";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
+
+const QueuePanel = dynamic(() => import("./QueuePanel"), { ssr: false });
+const NowPlayingView = dynamic(() => import("./NowPlayingView"), { ssr: false });
 
 function formatTime(seconds: number): string {
   if (!seconds || isNaN(seconds)) return "0:00";
@@ -57,6 +59,7 @@ export default function PlayerBar() {
     cycleRepeat,
     toggleNormalizeVolume,
     pause,
+    updateCurrentTrackLikeStatus,
   } = usePlayer();
 
   const [isLiked, setIsLiked] = useState(false);
@@ -77,11 +80,16 @@ export default function PlayerBar() {
   
   const handleToggleLike = async () => {
     if (!currentTrack) return;
+    const previousLikeState = isLiked;
     setIsLiked(!isLiked); // optimistic update
+    updateCurrentTrackLikeStatus(!isLiked); // Update store so it is saved to localStorage correctly
     try {
-      import("@/lib/api").then(api => api.toggleLikeTrack(currentTrack.id));
+      const api = await import("@/lib/api");
+      await api.toggleLikeTrack(currentTrack.id);
+      window.dispatchEvent(new Event("like_toggled"));
     } catch (e) {
-      setIsLiked(isLiked); // revert on failure
+      setIsLiked(previousLikeState); // revert on failure
+      updateCurrentTrackLikeStatus(previousLikeState);
     }
   };
 

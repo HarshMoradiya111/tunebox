@@ -1,12 +1,15 @@
 "use client";
 
-import { Play, Pause, Heart, MoreHorizontal } from "lucide-react";
+import { Play, Pause, Heart, MoreHorizontal, Edit2, Trash2 } from "lucide-react";
 import { usePlayer, PlayerTrack } from "@/store/playerStore";
 import { useState } from "react";
+import { updatePlaylist, deleteUserPlaylist } from "@/lib/api";
+import { useRouter } from "next/navigation";
 
-export default function PlaylistActionBar({ tracks, playlistInfo }: { tracks: PlayerTrack[], playlistInfo?: { id: string, name: string } }) {
+export default function PlaylistActionBar({ tracks, playlistInfo, isUserCreated }: { tracks: PlayerTrack[], playlistInfo?: { id: string, name: string }, isUserCreated?: boolean }) {
   const { playQueue, isPlaying, currentTrack, pause, resume, savedPlaylists, toggleSavedPlaylist } = usePlayer();
   const [showMenu, setShowMenu] = useState(false);
+  const router = useRouter();
   
   const isLiked = playlistInfo ? savedPlaylists.some(p => p.id === playlistInfo.id) : false;
 
@@ -68,6 +71,39 @@ export default function PlaylistActionBar({ tracks, playlistInfo }: { tracks: Pl
             >
               Share (Copy Link)
             </button>
+            {isUserCreated && playlistInfo && (
+              <>
+                <button 
+                  className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm text-[#e5e5e5] hover:bg-[#3e3e3e] hover:text-white rounded transition-colors"
+                  onClick={async () => {
+                    setShowMenu(false);
+                    const newName = window.prompt("Enter new playlist name:", playlistInfo.name);
+                    if (newName && newName.trim() !== "" && newName !== playlistInfo.name) {
+                      await updatePlaylist(playlistInfo.id, newName.trim());
+                      window.dispatchEvent(new Event("saved_playlists_changed"));
+                      window.location.reload();
+                    }
+                  }}
+                >
+                  <Edit2 className="w-4 h-4" />
+                  Rename
+                </button>
+                <button 
+                  className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm text-red-400 hover:bg-[#3e3e3e] hover:text-red-300 rounded transition-colors"
+                  onClick={async () => {
+                    setShowMenu(false);
+                    if (window.confirm("Are you sure you want to delete this playlist? This action cannot be undone.")) {
+                      await deleteUserPlaylist(playlistInfo.id);
+                      window.dispatchEvent(new Event("saved_playlists_changed"));
+                      router.push("/");
+                    }
+                  }}
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>

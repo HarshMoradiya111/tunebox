@@ -1,8 +1,9 @@
 import Image from "next/image";
-import { Clock } from "lucide-react";
+import { Clock, Edit2, Trash2 } from "lucide-react";
+import Link from "next/link";
 import TrackRow from "@/components/TrackRow";
 import PlaylistActionBar from "./PlaylistActionBar";
-import { fetchPlaylist, ApiPlaylistDetail } from "@/lib/api";
+import { fetchPlaylist, ApiPlaylistDetail, deleteUserPlaylist } from "@/lib/api";
 import ImportPoller from "./ImportPoller";
 
 interface PlaylistPageProps {
@@ -24,6 +25,7 @@ export default async function PlaylistPage({ params }: PlaylistPageProps) {
   let trackCount = 0;
   let tracks: any[] = [];
   let importStatus = "";
+  let isUserCreated = false;
 
   // Try to fetch real data from backend
   try {
@@ -34,26 +36,28 @@ export default async function PlaylistPage({ params }: PlaylistPageProps) {
     owner = playlist.owner || owner;
     trackCount = playlist.totalTracks || playlist.tracks.length;
     importStatus = playlist.importStatus || "";
+    isUserCreated = playlist.isUserCreated || false;
 
     // Map API tracks to shape for the TrackRow component
+    // Convert to PlayerTrack format
     if (playlist.tracks && playlist.tracks.length > 0) {
       tracks = playlist.tracks.map((t: any) => ({
-        id: t._id || t.spotifyId,
-        spotifyId: t.spotifyId,
-        title: t.title,
-        artist: t.artist,
-        album: t.album,
-        albumArt: t.albumArt,
-        duration: t.duration > 10000 ? Math.round(t.duration / 1000) : Math.round(t.duration || 0), // handle ms or seconds
-        dateAdded: "Recently",
-        streamUrl: t.streamUrl,
+        id: t._id || t.id,
+        spotifyId: t.spotifyId || t.spotifyTrackId || "",
+        title: t.title || t.name || "Unknown",
+        artist: t.artist || (t.artists ? t.artists.map((a: any) => a.name).join(", ") : "Unknown Artist"),
+        album: t.album || (t.album && t.album.name) || "Unknown Album",
+        albumArt: t.albumArt || (t.album && t.album.images && t.album.images[0]?.url) || "",
+        duration: t.duration || t.duration_ms || 0,
+        streamUrl: t.streamUrl || undefined,
+        isLiked: t.isLiked || false,
       }));
     }
   } catch (e) {
     console.error("Failed to fetch playlist:", e);
   }
 
-  const totalDuration = tracks.reduce((sum, t) => sum + t.duration, 0);
+  const totalDuration = tracks.reduce((sum, t) => sum + (t.duration > 10000 ? Math.round(t.duration / 1000) : Math.round(t.duration || 0)), 0);
   const totalMinutes = Math.round(totalDuration / 60);
 
   return (
@@ -86,34 +90,61 @@ export default async function PlaylistPage({ params }: PlaylistPageProps) {
         </div>
       </div>
 
-      <ImportPoller 
-        playlistId={id} 
-        initialStatus={importStatus} 
-        initialTotal={trackCount} 
-        initialImported={tracks.length} 
-      />
+      <div className="p-4 md:p-8">
+        {!isUserCreated && (importStatus === "pending" || importStatus === "importing") && (
+          <ImportPoller 
+            playlistId={id} 
+            initialStatus={importStatus}
+            initialImported={tracks.length}
+            initialTotal={trackCount}
+          />
+        )}
+      </div>
 
       {/* Action Bar Section */}
-      <PlaylistActionBar tracks={tracks} playlistInfo={{ id, name: playlistName }} />
+      <PlaylistActionBar tracks={tracks} playlistInfo={{ id, name: playlistName }} isUserCreated={isUserCreated} />
 
-      {/* Track Table Header */}
-      <div className="px-6">
-        <div className="grid grid-cols-[16px_4fr_3fr_2fr_minmax(100px,1fr)] items-center gap-4 px-4 py-2 text-[#b3b3b3] text-xs font-medium border-b border-[#282828] uppercase tracking-wider">
-          <span>#</span>
-          <span>Title</span>
-          <span className="hidden md:inline">Album</span>
-          <span className="hidden lg:inline">Date Added</span>
-          <div className="flex justify-end">
-            <Clock className="w-4 h-4" />
+      <div className="px-4 md:px-8 pb-32">
+        {tracks.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <h3 className="text-xl font-bold text-white mb-2">This playlist is empty</h3>
+            <p className="text-[#b3b3b3] text-sm mb-6 max-w-sm">
+              Add songs from your library or search for tracks to build your playlist.
+            </p>
+            <Link 
+              href="/library/uploads" 
+              className="px-6 py-2.5 bg-white text-black font-bold rounded-full hover:scale-105 transition-transform"
+            >
+              Go to Local Library
+            </Link>
           </div>
-        </div>
+        ) : (
+          <>
+            {/* Table Header */}
+            <div className="grid grid-cols-[16px_minmax(0,1fr)_120px] md:grid-cols-[16px_minmax(0,1fr)_minmax(0,1fr)_120px] gap-4 px-4 py-2 text-sm text-[#b3b3b3] border-b border-[#282828] mb-4">
+              <div className="text-center">#</div>
+              <div>Title</div>
+              <div className="hidden md:block">Album</div>
+              <div className="text-right flex items-center justify-end pr-8">
+                <Clock className="w-4 h-4" />
+              </div>
+            </div>
 
-        {/* Track Rows */}
-        <div className="flex flex-col gap-1 mt-2">
-          {tracks.map((track, index) => (
-            <TrackRow key={track.id} track={track} index={index} allTracks={tracks} />
-          ))}
-        </div>
+            {/* Track List */}
+            <div className="flex flex-col">
+              {tracks.map((track, index) => (
+                <TrackRow
+                  key={track.id}
+                  track={track}
+                  index={index}
+                  playlistId={id}
+                  playlistName={playlistName}
+                  tracks={tracks}
+                />
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

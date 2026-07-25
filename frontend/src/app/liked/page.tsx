@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { fetchLikedTracks } from "@/lib/api";
 import { PlayerTrack } from "@/store/playerStore";
 import TrackRow from "@/components/TrackRow";
+import VirtualizedTrackList from "@/components/VirtualizedTrackList";
 import { TrackItem } from "@/types";
 import { Heart, Play, Shuffle, Clock } from "lucide-react";
 import { usePlayer } from "@/store/playerStore";
@@ -41,6 +42,9 @@ export default function LikedSongsPage() {
       }
     };
     loadTracks();
+
+    window.addEventListener("like_toggled", loadTracks);
+    return () => window.removeEventListener("like_toggled", loadTracks);
   }, []);
 
   const isCurrentPlaylistPlaying = 
@@ -129,14 +133,7 @@ export default function LikedSongsPage() {
               </span>
             </div>
             {/* Tracks */}
-            {tracks.map((track, idx) => (
-              <TrackRow 
-                key={track.id} 
-                track={track} 
-                index={idx} 
-                allTracks={tracks} 
-              />
-            ))}
+            <VirtualizedTrackList tracks={tracks} />
           </div>
         )}
       </div>

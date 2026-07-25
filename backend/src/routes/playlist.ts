@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getPlaylistById } from "../controllers";
+import { getPlaylistById, createUserPlaylist, getUserPlaylists, addTrackToPlaylist, removeTrackFromPlaylist, deleteUserPlaylist, renameUserPlaylist } from "../controllers";
 
 const router = Router();
 
@@ -17,6 +17,16 @@ router.get("/", async (req, res) => {
 
 /** GET /api/playlist/:spotifyId/import-status — Import progress */
 router.get("/:spotifyId/import-status", require("../controllers").getImportStatus);
+
+// ==========================================
+// User-Created Playlists
+// ==========================================
+router.post("/", createUserPlaylist);
+router.get("/user/created", getUserPlaylists); // using /user/created to avoid collision with :spotifyId if it happens
+router.post("/:id/tracks", addTrackToPlaylist);
+router.delete("/:id/tracks/:trackId", removeTrackFromPlaylist);
+router.delete("/:id", deleteUserPlaylist);
+router.patch("/:id", renameUserPlaylist);
 
 /** GET /api/playlist/:spotifyId — Full playlist with tracks */
 router.get("/:spotifyId", getPlaylistById);

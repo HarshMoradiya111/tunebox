@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { Play, Heart, Clock, MoreHorizontal } from "lucide-react";
 import TrackRow from "@/components/TrackRow";
+import VirtualizedTrackList from "@/components/VirtualizedTrackList";
 import { fetchLocalAlbumTracks } from "@/lib/api";
 
 interface AlbumPageProps {
@@ -102,9 +103,7 @@ export default async function AlbumPage({ params }: AlbumPageProps) {
         {/* Track Rows */}
         <div className="flex flex-col gap-1 mt-2">
           {tracks.length > 0 ? (
-            tracks.map((track, index) => (
-              <TrackRow key={track.id} track={track} index={index} allTracks={tracks} />
-            ))
+            <VirtualizedTrackList tracks={tracks} />
           ) : (
             <p className="text-[#b3b3b3] text-sm py-8 text-center">No tracks found for this album.</p>
           )}

@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Play } from "lucide-react";
@@ -9,7 +10,7 @@ interface CardProps {
   item: MediaItem;
 }
 
-export default function Card({ item }: CardProps) {
+function Card({ item }: CardProps) {
   let href = `/playlist/${item.id}`;
   if (item.type === "album") href = `/album/${item.id}`;
   if (item.type === "artist") href = `/artist/${encodeURIComponent(item.id)}`;
@@ -42,3 +43,5 @@ export default function Card({ item }: CardProps) {
     </Link>
   );
 }
+
+export default memo(Card);

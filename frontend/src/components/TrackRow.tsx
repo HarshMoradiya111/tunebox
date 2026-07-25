@@ -3,11 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Play, Pause, Heart, MoreHorizontal, ListPlus, Trash2, Pencil, Check, X, PlaySquare, Clock } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, memo } from "react";
 import { TrackItem } from "@/types";
 import { usePlayer, PlayerTrack } from "@/store/playerStore";
 import { deleteUploadedTrack, updateUploadedTrack } from "@/lib/api";
 import { useRouter } from "next/navigation";
+import AddToPlaylistModal from "./AddToPlaylistModal";
 
 interface TrackRowProps {
   track: TrackItem;
@@ -32,7 +33,7 @@ function trackItemToPlayerTrack(t: TrackItem): PlayerTrack {
   };
 }
 
-export default function TrackRow({ track, index, allTracks, selectable, isSelected, onToggleSelect }: TrackRowProps) {
+function TrackRow({ track, index, allTracks, selectable, isSelected, onToggleSelect }: TrackRowProps) {
   const { currentTrack, isPlaying, playTrack, playQueue, togglePlay, addToQueue, playNext, pause } =
     usePlayer();
   const [isLiked, setIsLiked] = useState(track.isLiked || false);
@@ -55,12 +56,27 @@ export default function TrackRow({ track, index, allTracks, selectable, isSelect
   const [editArtist, setEditArtist] = useState(track.artist);
   const [editAlbum, setEditAlbum] = useState(track.album);
   const [editTags, setEditTags] = useState(track.tags?.join(", ") || "");
+
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
   
   // Local display states (so UI updates immediately after save)
   const [displayTitle, setDisplayTitle] = useState(track.title);
   const [displayArtist, setDisplayArtist] = useState(track.artist);
   const [displayAlbum, setDisplayAlbum] = useState(track.album);
   const [displayTags, setDisplayTags] = useState(track.tags || []);
+  
+  const [isPlaylistModalOpen, setIsPlaylistModalOpen] = useState(false);
 
   const router = useRouter();
 
@@ -368,12 +384,44 @@ export default function TrackRow({ track, index, allTracks, selectable, isSelect
             >
               <ListPlus className="w-4 h-4" />
             </button>
-            <button onClick={(e) => e.stopPropagation()} aria-label="More options" className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-[#b3b3b3] hover:text-white transition-opacity">
-              <MoreHorizontal className="w-4 h-4" />
-            </button>
+            <div className="relative" ref={menuRef}>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsMenuOpen(!isMenuOpen);
+                }} 
+                aria-label="More options" 
+                className={`transition-opacity ${isMenuOpen ? "opacity-100 text-white" : "opacity-0 group-hover:opacity-100 text-[#b3b3b3] hover:text-white"}`}
+              >
+                <MoreHorizontal className="w-4 h-4" />
+              </button>
+              {isMenuOpen && (
+                <div className="absolute right-0 bottom-full mb-2 w-48 bg-[#282828] rounded shadow-lg py-1 z-50 text-sm">
+                  <button 
+                    className="w-full text-left px-4 py-2 hover:bg-[#3e3e3e] text-white"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsMenuOpen(false);
+                      setIsPlaylistModalOpen(true);
+                    }}
+                  >
+                    Add to playlist
+                  </button>
+                </div>
+              )}
+            </div>
           </>
         )}
       </div>
+
+      {isPlaylistModalOpen && (
+        <AddToPlaylistModal 
+          trackId={track.id} 
+          onClose={() => setIsPlaylistModalOpen(false)} 
+        />
+      )}
     </div>
   );
 }
+
+export default memo(TrackRow);
