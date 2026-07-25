@@ -64,7 +64,7 @@ export default function PlayerBar() {
 
   const [isLiked, setIsLiked] = useState(false);
   const [isDraggingSeek, setIsDraggingSeek] = useState(false);
-  
+
   // Advanced Features State
   const [isQueueOpen, setIsQueueOpen] = useState(false);
   const [isNowPlayingOpen, setIsNowPlayingOpen] = useState(false);
@@ -73,11 +73,11 @@ export default function PlayerBar() {
   const [sleepTimeRemaining, setSleepTimeRemaining] = useState<number | null>(null);
   const [isSleepMenuOpen, setIsSleepMenuOpen] = useState(false);
   const sleepFocusRef = useFocusTrap(isSleepMenuOpen, () => setIsSleepMenuOpen(false));
-  
+
   useEffect(() => {
     setIsLiked(currentTrack?.isLiked || false);
   }, [currentTrack]);
-  
+
   const handleToggleLike = async () => {
     if (!currentTrack) return;
     const previousLikeState = isLiked;
@@ -99,26 +99,26 @@ export default function PlayerBar() {
       setSleepTimeRemaining(null);
       return;
     }
-    
+
     const interval = setInterval(() => {
       const now = Date.now();
       const remaining = Math.max(0, sleepTimerEndTime - now);
       setSleepTimeRemaining(remaining);
-      
+
       if (remaining === 0) {
         pause();
         setSleepTimerEndTime(null);
         setSleepTimerMinutes(null);
       }
     }, 1000);
-    
+
     return () => clearInterval(interval);
   }, [sleepTimerEndTime, pause]);
 
   const handleSetSleepTimer = (minutes: number | 'end' | null) => {
     setSleepTimerMinutes(minutes);
     setIsSleepMenuOpen(false);
-    
+
     if (minutes === null) {
       setSleepTimerEndTime(null);
     } else if (minutes === 'end') {
@@ -141,7 +141,7 @@ export default function PlayerBar() {
       ) {
         return;
       }
-      
+
       // Ignore if modifier keys (Ctrl/Cmd) are pressed so we don't block browser shortcuts (like Ctrl+R)
       if (e.ctrlKey || e.metaKey) return;
 
@@ -203,7 +203,7 @@ export default function PlayerBar() {
       </div>
 
       {/* Left / Mobile Mini Player: Now Playing Track Info */}
-      <div 
+      <div
         role="button"
         tabIndex={0}
         aria-label="Open now playing view"
@@ -221,7 +221,7 @@ export default function PlayerBar() {
       >
         {currentTrack ? (
           <div className="flex items-center justify-between w-full min-w-0 gap-2">
-            <div 
+            <div
               className="relative w-10 h-10 md:w-14 md:h-14 rounded-md overflow-hidden bg-[#282828] shrink-0 cursor-pointer group"
               onClick={(e) => {
                 e.stopPropagation();
@@ -248,13 +248,12 @@ export default function PlayerBar() {
               </Link>
             </div>
 
-            <div className="flex items-center gap-0.5 shrink-0 pr-4 md:pr-0">
+            <div className="flex items-center gap-1 shrink-0 mr-6 md:mr-0">
               <button
                 onClick={(e) => { e.stopPropagation(); handleToggleLike(); }}
                 aria-label={isLiked ? "Remove from liked songs" : "Save to your liked songs"}
-                className={`p-1 rounded-full hover:scale-105 transition-transform flex items-center justify-center ${
-                  isLiked ? "text-[#1db954]" : "text-[#b3b3b3] hover:text-white"
-                }`}
+                className={`p-1 rounded-full hover:scale-105 transition-transform flex items-center justify-center ${isLiked ? "text-[#1db954]" : "text-[#b3b3b3] hover:text-white"
+                  }`}
               >
                 <Heart className={`w-4 h-4 ${isLiked ? "fill-current" : ""}`} />
               </button>
@@ -316,9 +315,8 @@ export default function PlayerBar() {
           <button
             onClick={toggleShuffle}
             aria-label={isShuffled ? "Disable shuffle" : "Enable shuffle"}
-            className={`transition-colors p-1 relative ${
-              isShuffled ? "text-[#1db954]" : "text-[#b3b3b3] hover:text-white"
-            }`}
+            className={`transition-colors p-1 relative ${isShuffled ? "text-[#1db954]" : "text-[#b3b3b3] hover:text-white"
+              }`}
           >
             <Shuffle className="w-4 h-4" />
             {isShuffled && <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-[#1db954] rounded-full"></span>}
@@ -354,9 +352,8 @@ export default function PlayerBar() {
           <button
             onClick={cycleRepeat}
             aria-label={`Repeat mode: ${repeatMode}`}
-            className={`transition-colors p-1 relative ${
-              repeatMode !== "off" ? "text-[#1db954]" : "text-[#b3b3b3] hover:text-white"
-            }`}
+            className={`transition-colors p-1 relative ${repeatMode !== "off" ? "text-[#1db954]" : "text-[#b3b3b3] hover:text-white"
+              }`}
           >
             {repeatMode === "one" ? <Repeat1 className="w-4 h-4" /> : <Repeat className="w-4 h-4" />}
             {repeatMode !== "off" && <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-[#1db954] rounded-full"></span>}
@@ -405,10 +402,10 @@ export default function PlayerBar() {
 
       {/* Right: Volume & Utilities (Hidden on Mobile) */}
       <div className="hidden md:flex items-center justify-end gap-3 w-1/4 text-[#b3b3b3]">
-        
+
         {/* Sleep Timer */}
         <div className="relative">
-          <button 
+          <button
             onClick={() => setIsSleepMenuOpen(!isSleepMenuOpen)}
             aria-label="Sleep timer"
             aria-expanded={isSleepMenuOpen}
@@ -416,12 +413,12 @@ export default function PlayerBar() {
           >
             <Timer className="w-4 h-4" />
             {sleepTimerEndTime && sleepTimeRemaining !== null && (
-               <span className="absolute -top-2 -right-3 text-[9px] bg-[#1db954] text-black px-1 rounded-sm font-bold">
-                 {formatTime(sleepTimeRemaining / 1000)}
-               </span>
+              <span className="absolute -top-2 -right-3 text-[9px] bg-[#1db954] text-black px-1 rounded-sm font-bold">
+                {formatTime(sleepTimeRemaining / 1000)}
+              </span>
             )}
           </button>
-          
+
           {isSleepMenuOpen && (
             <div ref={sleepFocusRef} className="absolute bottom-10 right-0 w-40 bg-[#282828] rounded-md shadow-2xl py-1 text-sm overflow-hidden z-50">
               <div className="px-3 py-2 text-xs font-bold text-[#b3b3b3] uppercase tracking-wider border-b border-[#3e3e3e]">Sleep Timer</div>
@@ -435,9 +432,9 @@ export default function PlayerBar() {
             </div>
           )}
         </div>
-        
+
         {/* Queue */}
-        <button 
+        <button
           onClick={() => setIsQueueOpen(!isQueueOpen)}
           aria-label="Queue"
           aria-expanded={isQueueOpen}
@@ -447,7 +444,7 @@ export default function PlayerBar() {
         </button>
 
         {/* Volume Normalization */}
-        <button 
+        <button
           onClick={toggleNormalizeVolume}
           className={`transition-colors p-1 ${normalizeVolume ? "text-[#1db954]" : "hover:text-white"}`}
           title="Normalize Volume"
@@ -463,9 +460,8 @@ export default function PlayerBar() {
             className="hover:text-white transition-colors p-1"
           >
             <VolumeIcon
-              className={`w-4 h-4 ${
-                effectiveVolume === 0 ? "text-rose-500" : ""
-              }`}
+              className={`w-4 h-4 ${effectiveVolume === 0 ? "text-rose-500" : ""
+                }`}
             />
           </button>
           <input
