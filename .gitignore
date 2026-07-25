@@ -16,7 +16,7 @@ frontend/out/
 backend/dist/
 
 # Audio library (large files, not for git)
-library/
+/library/
 backend/library/
 
 # IDE
