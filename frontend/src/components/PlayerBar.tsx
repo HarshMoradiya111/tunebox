@@ -239,16 +239,32 @@ export default function PlayerBar() {
               </div>
             </div>
 
-            <div className="flex flex-col min-w-0 flex-1 overflow-hidden">
-              <span className="text-white text-xs md:text-sm font-semibold truncate cursor-pointer">
+            <div 
+              className="flex flex-col min-w-0 flex-1 overflow-hidden cursor-pointer"
+              onClick={() => {
+                if (window.innerWidth < 768) setIsNowPlayingOpen(true);
+              }}
+            >
+              <span className="text-white text-xs md:text-sm font-semibold truncate">
                 {currentTrack.title}
               </span>
-              <Link href={`/artist/${encodeURIComponent(currentTrack.artist)}`} className="text-[#b3b3b3] text-[11px] md:text-xs truncate cursor-pointer" onClick={(e) => e.stopPropagation()}>
+              <Link 
+                href={`/artist/${encodeURIComponent(currentTrack.artist)}`} 
+                className="text-[#b3b3b3] text-[11px] md:text-xs truncate hover:underline" 
+                onClick={(e) => {
+                  if (window.innerWidth < 768) {
+                    e.stopPropagation();
+                    setIsNowPlayingOpen(true);
+                  } else {
+                    e.stopPropagation();
+                  }
+                }}
+              >
                 {currentTrack.artist}
               </Link>
             </div>
 
-            <div className="flex items-center gap-1 shrink-0 mr-6 md:mr-0">
+            <div className="flex items-center gap-1 shrink-0 mr-3 md:mr-0">
               <button
                 onClick={(e) => { e.stopPropagation(); handleToggleLike(); }}
                 aria-label={isLiked ? "Remove from liked songs" : "Save to your liked songs"}
