@@ -189,7 +189,7 @@ export default function PlayerBar() {
         : Volume2;
 
   return (
-    <footer className="h-16 md:h-[90px] bg-black border-t border-[#282828] px-2 md:px-4 flex items-center justify-between z-50 select-none pb-[env(safe-area-inset-bottom)] relative">
+    <footer className="h-14 md:h-[90px] fixed md:static bottom-14 md:bottom-0 left-2 right-2 md:left-auto md:right-auto md:w-full rounded-lg md:rounded-none bg-[#282828] md:bg-black border border-[#3e3e3e] md:border-0 md:border-t md:border-[#282828] px-3 md:px-4 flex items-center justify-between z-40 select-none shadow-2xl transition-all">
       {/* Mobile Top Progress Line */}
       {duration > 0 && (
         <div className="md:hidden absolute top-0 left-0 right-0 h-[2px] bg-[#282828]">

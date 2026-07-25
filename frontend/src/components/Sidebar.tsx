@@ -314,7 +314,7 @@ export default function Sidebar() {
       </aside>
 
       {/* Mobile Bottom Navigation (< md) */}
-      <div className="md:hidden fixed bottom-[calc(64px+env(safe-area-inset-bottom))] left-0 right-0 bg-[#121212]/95 backdrop-blur-md border-t border-[#282828] z-40 flex items-center justify-around py-2 px-4 text-[#b3b3b3]">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#090909]/95 backdrop-blur-md border-t border-[#282828] z-50 flex items-center justify-around h-14 px-4 text-[#b3b3b3]">
         {mainNav.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;

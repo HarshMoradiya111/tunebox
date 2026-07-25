@@ -337,7 +337,7 @@ function TrackRow({ track, index, allTracks, selectable, isSelected, onToggleSel
                 <button
                   onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
                   aria-label="Edit metadata"
-                  className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-[#b3b3b3] hover:text-white transition-opacity"
+                  className="hidden md:inline-flex opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-[#b3b3b3] hover:text-white transition-opacity"
                   title="Edit metadata"
                 >
                   <Pencil className="w-4 h-4" />
@@ -345,7 +345,7 @@ function TrackRow({ track, index, allTracks, selectable, isSelected, onToggleSel
                 <button
                   onClick={handleDelete}
                   aria-label="Delete local track"
-                  className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-[#b3b3b3] hover:text-red-500 transition-opacity"
+                  className="hidden md:inline-flex opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-[#b3b3b3] hover:text-red-500 transition-opacity"
                   title="Delete local track"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -363,14 +363,14 @@ function TrackRow({ track, index, allTracks, selectable, isSelected, onToggleSel
             >
               <Heart className={`w-4 h-4 ${isLiked ? "fill-current" : ""}`} />
             </button>
-            <span>{formatDuration(track.duration)}</span>
+            <span className="hidden sm:inline">{formatDuration(track.duration)}</span>
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 playNext(trackItemToPlayerTrack(track));
               }}
               aria-label="Play next"
-              className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-[#b3b3b3] hover:text-white transition-opacity"
+              className="hidden md:inline-flex opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-[#b3b3b3] hover:text-white transition-opacity"
               title="Play next"
             >
               <PlaySquare className="w-4 h-4" />
@@ -381,7 +381,7 @@ function TrackRow({ track, index, allTracks, selectable, isSelected, onToggleSel
                 addToQueue(trackItemToPlayerTrack(track));
               }}
               aria-label="Add to queue"
-              className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-[#b3b3b3] hover:text-white transition-opacity"
+              className="hidden md:inline-flex opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-[#b3b3b3] hover:text-white transition-opacity"
               title="Add to queue"
             >
               <ListPlus className="w-4 h-4" />

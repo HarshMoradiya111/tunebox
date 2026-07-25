@@ -138,14 +138,14 @@ export default function UploadsPage() {
   return (
     <div className="flex flex-col h-full bg-gradient-to-b from-[#282828] to-[#121212] overflow-y-auto">
       {/* Header */}
-      <div className="flex items-end gap-6 p-6 pt-16 mt-8">
-        <div className="w-48 h-48 bg-gradient-to-br from-green-400 to-[#1db954] shadow-2xl flex items-center justify-center rounded">
-          <Music className="w-24 h-24 text-black" />
+      <div className="flex flex-col sm:flex-row items-center sm:items-end text-center sm:text-left gap-4 sm:gap-6 p-4 sm:p-6 pt-10 sm:pt-16 mt-2 sm:mt-8">
+        <div className="w-36 h-36 sm:w-48 sm:h-48 bg-gradient-to-br from-green-400 to-[#1db954] shadow-2xl flex items-center justify-center rounded shrink-0">
+          <Music className="w-16 h-16 sm:w-24 sm:h-24 text-black" />
         </div>
-        <div className="flex flex-col gap-2">
-          <span className="text-sm font-bold text-white uppercase">Playlist</span>
-          <h1 className="text-5xl md:text-7xl font-bold text-white tracking-tighter">My Uploads</h1>
-          <p className="text-[#b3b3b3] text-sm mt-2 font-medium">
+        <div className="flex flex-col gap-2 min-w-0">
+          <span className="text-xs sm:text-sm font-bold text-white uppercase">Playlist</span>
+          <h1 className="text-3xl sm:text-6xl font-bold text-white tracking-tighter">My Uploads</h1>
+          <p className="text-[#b3b3b3] text-xs sm:text-sm mt-1 font-medium">
             Your personal local library. {tracks.length} {tracks.length === 1 ? 'song' : 'songs'}.
           </p>
         </div>
@@ -249,7 +249,7 @@ export default function UploadsPage() {
         ) : (
           <div className="flex flex-col">
             {/* Header Row */}
-            <div className="grid grid-cols-[16px_4fr_3fr_2fr_minmax(100px,1fr)] items-center gap-4 px-4 py-2 border-b border-[#282828] text-[#b3b3b3] text-xs uppercase font-medium mb-4">
+            <div className="grid grid-cols-[16px_1fr_auto] md:grid-cols-[16px_4fr_3fr_2fr_minmax(100px,1fr)] items-center gap-2 md:gap-4 px-2 md:px-4 py-2 border-b border-[#282828] text-[#b3b3b3] text-xs uppercase font-medium mb-4">
               <div className="text-center flex justify-center">
                 {selectionMode ? (
                   <button onClick={handleSelectAll} className="hover:text-white transition-colors">
@@ -267,7 +267,7 @@ export default function UploadsPage() {
               <span className="hidden md:inline">Album</span>
               <span className="hidden lg:inline">Date Added</span>
               <span className="text-right flex items-center justify-end">
-                <Music className="w-4 h-4 mr-10" />
+                <Music className="w-4 h-4" />
               </span>
             </div>
             {/* Tracks */}
