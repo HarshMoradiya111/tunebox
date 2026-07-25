@@ -34,10 +34,10 @@
     "typescript": "^5.8.3",
     "youtube-dl-exec": "^3.1.9",
     "youtubei.js": "^17.2.0",
-    "yt-search": "^2.13.1"
+    "yt-search": "^2.13.1",
+    "@types/multer": "^1.4.12"
   },
   "devDependencies": {
-    "@types/multer": "^2.2.0",
     "nodemon": "^3.1.10",
     "ts-node": "^10.9.2"
   }
