@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -11,6 +11,9 @@ import {
   Heart,
   Music2,
   Compass,
+  Sparkles,
+  Upload,
+  Link2,
 } from "lucide-react";
 import { usePlayer } from "@/store/playerStore";
 import { fetchAutoPlaylists } from "@/lib/api";
@@ -20,12 +23,25 @@ export default function Sidebar() {
   const { savedPlaylists } = usePlayer();
   const [autoPlaylists, setAutoPlaylists] = useState<any[]>([]);
   const [likedCount, setLikedCount] = useState<number>(0);
+  const [showPlusMenu, setShowPlusMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchAutoPlaylists().then(setAutoPlaylists).catch(console.error);
-    import("@/lib/api").then(api => {
+    import("@/lib/api").then((api) => {
       api.fetchLikedCount().then(setLikedCount).catch(console.error);
     });
+  }, []);
+
+  // Close menu on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowPlusMenu(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const mainNav = [
@@ -34,20 +50,19 @@ export default function Sidebar() {
     { name: "Your Library", href: "/playlist/liked-songs", icon: Library },
   ];
 
-  // Only use user's saved playlists
   const allPlaylists = [...savedPlaylists];
 
   return (
     <>
       {/* Desktop Sidebar (md+) */}
-      <aside className="hidden md:flex w-64 bg-black h-full flex-col justify-between p-3 gap-2 select-none text-[#b3b3b3]">
+      <aside className="hidden md:flex w-64 bg-black h-full flex-col p-3 gap-2 select-none text-[#b3b3b3] shrink-0">
         {/* Brand & Main Navigation Block */}
-        <div className="bg-[#121212] rounded-lg p-4 flex flex-col gap-4">
-          <Link href="/" className="flex items-center gap-2 text-white font-bold text-xl px-2 mb-2">
-            <div className="w-8 h-8 rounded-full bg-[#1db954] flex items-center justify-center text-black">
+        <div className="bg-[#121212] rounded-lg p-4 flex flex-col gap-3 shrink-0">
+          <Link href="/" className="flex items-center gap-2 text-white font-bold text-xl px-2 mb-1">
+            <div className="w-8 h-8 rounded-full bg-[#1db954] flex items-center justify-center text-black shadow-md shadow-[#1db954]/20">
               <Music2 className="w-5 h-5 fill-current" />
             </div>
-            <span>TuneBox</span>
+            <span className="tracking-tight">TuneBox</span>
           </Link>
 
           <nav className="flex flex-col gap-1">
@@ -58,9 +73,9 @@ export default function Sidebar() {
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`flex items-center gap-4 px-3 py-2.5 rounded-md font-medium text-sm transition-colors duration-200 ${
+                  className={`flex items-center gap-4 px-3 py-2.5 rounded-md font-medium text-sm transition-all duration-200 ${
                     isActive
-                      ? "text-white bg-[#282828]"
+                      ? "text-white bg-[#282828] font-semibold"
                       : "hover:text-white hover:bg-[#1a1a1a]"
                   }`}
                 >
@@ -73,94 +88,157 @@ export default function Sidebar() {
         </div>
 
         {/* Library & Playlists Block */}
-        <div className="bg-[#121212] rounded-lg p-4 flex-1 flex flex-col min-h-0">
-          <div className="flex items-center justify-between px-2 mb-3">
+        <div className="bg-[#121212] rounded-lg p-3 flex-1 flex flex-col min-h-0 overflow-hidden relative">
+          {/* Header */}
+          <div className="flex items-center justify-between px-2 mb-2 shrink-0">
             <div className="flex items-center gap-2 text-white font-semibold text-sm">
               <Compass className="w-5 h-5 text-[#b3b3b3]" />
               <span>Playlists</span>
             </div>
-            <button aria-label="Create playlist" className="p-1 rounded-full hover:bg-[#282828] text-[#b3b3b3] hover:text-white transition-colors">
-              <Plus className="w-4 h-4" />
-            </button>
+            <div className="relative" ref={menuRef}>
+              <button
+                onClick={() => setShowPlusMenu((prev) => !prev)}
+                aria-label="Create or import playlist"
+                className="p-1.5 rounded-full hover:bg-[#282828] text-[#b3b3b3] hover:text-white transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+
+              {/* Plus Menu Dropdown */}
+              {showPlusMenu && (
+                <div className="absolute right-0 top-8 w-48 bg-[#282828] border border-[#3e3e3e] rounded-md shadow-xl py-1 z-50 text-xs">
+                  <Link
+                    href="/import"
+                    onClick={() => setShowPlusMenu(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 text-[#d1d1d1] hover:text-white hover:bg-[#3e3e3e] transition-colors"
+                  >
+                    <Link2 className="w-3.5 h-3.5 text-[#1db954]" />
+                    <span>Import Spotify Playlist</span>
+                  </Link>
+                  <Link
+                    href="/upload"
+                    onClick={() => setShowPlusMenu(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 text-[#d1d1d1] hover:text-white hover:bg-[#3e3e3e] transition-colors"
+                  >
+                    <Upload className="w-3.5 h-3.5 text-[#1db954]" />
+                    <span>Upload Local MP3s</span>
+                  </Link>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Quick Liked Songs Pill */}
-          <Link
-            href="/liked"
-            className="flex items-center gap-3 p-2 rounded-md hover:bg-[#1a1a1a] transition-colors group mb-2"
-          >
-            <div className="w-10 h-10 rounded bg-gradient-to-br from-indigo-600 to-purple-800 flex items-center justify-center text-white">
-              <Heart className="w-5 h-5 fill-white" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-white text-sm font-medium group-hover:underline">Liked Songs</span>
-              <span className="text-xs text-[#b3b3b3]">Playlist • {likedCount} {likedCount === 1 ? 'song' : 'songs'}</span>
-            </div>
-          </Link>
+          {/* Action Chips */}
+          <div className="flex items-center gap-2 px-1 mb-3 shrink-0">
+            <Link
+              href="/import"
+              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 bg-[#242424] hover:bg-[#323232] text-xs font-medium text-white rounded-full transition-colors border border-white/5"
+            >
+              <Link2 className="w-3.5 h-3.5 text-[#1db954]" />
+              <span>Import</span>
+            </Link>
+            <Link
+              href="/upload"
+              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 bg-[#242424] hover:bg-[#323232] text-xs font-medium text-white rounded-full transition-colors border border-white/5"
+            >
+              <Upload className="w-3.5 h-3.5 text-[#1db954]" />
+              <span>Upload</span>
+            </Link>
+          </div>
 
-          {/* My Uploads Pill */}
-          <Link
-            href="/library/uploads"
-            className="flex items-center gap-3 p-2 rounded-md hover:bg-[#1a1a1a] transition-colors group mb-2"
-          >
-            <div className="w-10 h-10 rounded bg-gradient-to-br from-green-400 to-[#1db954] flex items-center justify-center text-black">
-              <Music2 className="w-5 h-5 fill-current" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-white text-sm font-medium group-hover:underline">My Uploads</span>
-              <span className="text-xs text-[#b3b3b3]">Local Library</span>
-            </div>
-          </Link>
+          {/* Scrollable Library & Playlist Items Container */}
+          <div className="flex-1 overflow-y-auto min-h-0 flex flex-col gap-1 pr-1 custom-scrollbar">
+            {/* Quick Liked Songs Pill */}
+            <Link
+              href="/liked"
+              className={`flex items-center gap-3 p-2 rounded-md transition-colors group shrink-0 ${
+                pathname === "/liked" ? "bg-[#282828]" : "hover:bg-[#1a1a1a]"
+              }`}
+            >
+              <div className="w-9 h-9 rounded bg-gradient-to-br from-indigo-600 to-purple-800 flex items-center justify-center text-white shrink-0 shadow-sm">
+                <Heart className="w-4 h-4 fill-white" />
+              </div>
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="text-white text-sm font-medium group-hover:underline truncate">Liked Songs</span>
+                <span className="text-xs text-[#b3b3b3]">Playlist • {likedCount} {likedCount === 1 ? 'song' : 'songs'}</span>
+              </div>
+            </Link>
 
-          {/* Import Playlist Action */}
-          <Link
-            href="/import"
-            className="flex items-center gap-3 p-2 rounded-md hover:bg-[#1a1a1a] transition-colors group mb-2"
-          >
-            <div className="w-10 h-10 rounded bg-[#282828] group-hover:bg-[#1a1a1a] flex items-center justify-center transition-colors">
-              <Plus className="w-5 h-5 text-[#b3b3b3] group-hover:text-white transition-colors" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-white text-sm font-medium group-hover:underline">Import Playlist</span>
-              <span className="text-xs text-[#b3b3b3]">From Spotify URL</span>
-            </div>
-          </Link>
+            {/* My Uploads Pill */}
+            <Link
+              href="/library/uploads"
+              className={`flex items-center gap-3 p-2 rounded-md transition-colors group shrink-0 ${
+                pathname === "/library/uploads" ? "bg-[#282828]" : "hover:bg-[#1a1a1a]"
+              }`}
+            >
+              <div className="w-9 h-9 rounded bg-gradient-to-br from-green-400 to-[#1db954] flex items-center justify-center text-black shrink-0 shadow-sm">
+                <Music2 className="w-4 h-4 fill-current" />
+              </div>
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="text-white text-sm font-medium group-hover:underline truncate">My Uploads</span>
+                <span className="text-xs text-[#b3b3b3]">Local Library</span>
+              </div>
+            </Link>
 
-          {/* Upload Music Action */}
-          <Link
-            href="/upload"
-            className="flex items-center gap-3 p-2 rounded-md hover:bg-[#1a1a1a] transition-colors group mb-2"
-          >
-            <div className="w-10 h-10 rounded bg-[#282828] group-hover:bg-[#1a1a1a] flex items-center justify-center transition-colors">
-              <Plus className="w-5 h-5 text-[#b3b3b3] group-hover:text-white transition-colors" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-white text-sm font-medium group-hover:underline">Upload Music</span>
-              <span className="text-xs text-[#b3b3b3]">Local MP3 Files</span>
-            </div>
-          </Link>
+            {/* Auto Playlists Section */}
+            {autoPlaylists.length > 0 && (
+              <div className="mt-2 pt-2 border-t border-[#282828]">
+                <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[#727272]">
+                  Auto-Generated
+                </div>
+                {autoPlaylists.map((pl) => {
+                  const targetHref = `/playlist/${pl.spotifyId || pl.id}`;
+                  const isActive = pathname === targetHref;
+                  return (
+                    <Link
+                      key={pl.spotifyId || pl.id}
+                      href={targetHref}
+                      className={`flex items-center justify-between gap-2 px-2.5 py-2 rounded-md transition-colors text-sm group shrink-0 ${
+                        isActive
+                          ? "bg-[#282828] text-white font-medium"
+                          : "text-[#b3b3b3] hover:text-white hover:bg-[#1a1a1a]"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <div className="w-7 h-7 rounded bg-[#242424] flex items-center justify-center text-[#1db954] shrink-0 group-hover:bg-[#282828]">
+                          <Sparkles className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="truncate text-xs font-medium">{pl.name}</span>
+                      </div>
+                      <span className="text-[9px] uppercase tracking-wider font-bold bg-[#1db954]/10 text-[#1db954] border border-[#1db954]/20 px-1.5 py-0.5 rounded shrink-0">
+                        Auto
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
 
-          {/* Scrollable Playlist List */}
-          <div className="flex-1 overflow-y-auto flex flex-col gap-1 pr-1 border-t border-[#282828] pt-2">
-            {autoPlaylists.map((pl) => (
-              <Link
-                key={pl.spotifyId || pl.id}
-                href={`/playlist/${pl.spotifyId || pl.id}`}
-                className="flex items-center justify-between px-2 py-1.5 rounded text-sm text-[#b3b3b3] hover:text-white hover:bg-[#1a1a1a] transition-colors shrink-0 group"
-              >
-                <span className="truncate">{pl.name}</span>
-                <span className="text-[9px] uppercase tracking-wider font-bold bg-[#282828] group-hover:bg-[#333] px-1.5 py-0.5 rounded text-[#1db954]">Auto</span>
-              </Link>
-            ))}
-            {allPlaylists.map((pl) => (
-              <Link
-                key={pl.id}
-                href={`/playlist/${pl.id}`}
-                className="block px-2 py-1.5 rounded text-sm text-[#b3b3b3] hover:text-white hover:bg-[#1a1a1a] truncate transition-colors shrink-0"
-              >
-                {pl.name}
-              </Link>
-            ))}
+            {/* Custom / Saved Playlists Section */}
+            {allPlaylists.length > 0 && (
+              <div className="mt-2 pt-2 border-t border-[#282828]">
+                <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[#727272]">
+                  Your Playlists
+                </div>
+                {allPlaylists.map((pl) => {
+                  const targetHref = `/playlist/${pl.id}`;
+                  const isActive = pathname === targetHref;
+                  return (
+                    <Link
+                      key={pl.id}
+                      href={targetHref}
+                      className={`block px-2.5 py-2 rounded-md text-xs transition-colors shrink-0 ${
+                        isActive
+                          ? "bg-[#282828] text-white font-medium"
+                          : "text-[#b3b3b3] hover:text-white hover:bg-[#1a1a1a]"
+                      }`}
+                    >
+                      <span className="truncate block">{pl.name}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </aside>
@@ -187,3 +265,4 @@ export default function Sidebar() {
     </>
   );
 }
+

@@ -200,7 +200,7 @@ export default function TrackRow({ track, index, allTracks, selectable, isSelect
           {track.albumArt && (
             <Image
               src={track.albumArt}
-              alt={displayTitle}
+              alt={displayTitle || "Track cover"}
               fill
               sizes="40px"
               className="object-cover"

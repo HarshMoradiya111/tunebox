@@ -44,7 +44,7 @@ export default async function PlaylistPage({ params }: PlaylistPageProps) {
         artist: t.artist,
         album: t.album,
         albumArt: t.albumArt,
-        duration: Math.round(t.duration / 1000), // ms to seconds
+        duration: t.duration > 10000 ? Math.round(t.duration / 1000) : Math.round(t.duration || 0), // handle ms or seconds
         dateAdded: "Recently",
         streamUrl: t.streamUrl,
       }));
