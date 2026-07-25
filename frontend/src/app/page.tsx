@@ -22,7 +22,7 @@ function playlistToMediaItem(p: ApiFeaturedPlaylist): MediaItem {
     id: p.spotifyId,
     title: p.name,
     subtitle: p.description || `${p.totalTracks} songs`,
-    image: p.coverImage,
+    image: p.coverImage || `https://placehold.co/400x400/222/FFF?text=${encodeURIComponent(p.name)}`,
     type: "playlist",
   };
 }
@@ -32,7 +32,7 @@ function releaseToMediaItem(r: ApiNewRelease): MediaItem {
     id: r.spotifyId,
     title: r.name,
     subtitle: `${r.artist} • ${r.albumType}`,
-    image: r.coverImage,
+    image: r.coverImage || `https://placehold.co/400x400/222/FFF?text=${encodeURIComponent(r.name)}`,
     type: "album",
   };
 }
@@ -42,7 +42,7 @@ function playerTrackToMediaItem(t: PlayerTrack): MediaItem {
     id: t.spotifyId || t.id,
     title: t.title,
     subtitle: t.artist,
-    image: t.albumArt,
+    image: t.albumArt || `https://placehold.co/400x400/222/FFF?text=${encodeURIComponent(t.title)}`,
     type: "album",
   };
 }
@@ -52,7 +52,7 @@ function artistToMediaItem(a: { name: string; trackCount: number; coverImage: st
     id: a.name,
     title: a.name,
     subtitle: "Artist",
-    image: a.coverImage,
+    image: a.coverImage || `https://placehold.co/400x400/222/FFF?text=${encodeURIComponent(a.name)}`,
     type: "artist",
   };
 }

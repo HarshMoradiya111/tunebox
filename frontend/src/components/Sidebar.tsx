@@ -19,9 +19,13 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { savedPlaylists } = usePlayer();
   const [autoPlaylists, setAutoPlaylists] = useState<any[]>([]);
+  const [likedCount, setLikedCount] = useState<number>(0);
 
   useEffect(() => {
     fetchAutoPlaylists().then(setAutoPlaylists).catch(console.error);
+    import("@/lib/api").then(api => {
+      api.fetchLikedCount().then(setLikedCount).catch(console.error);
+    });
   }, []);
 
   const mainNav = [
@@ -105,7 +109,7 @@ export default function Sidebar() {
             </div>
             <div className="flex flex-col">
               <span className="text-white text-sm font-medium group-hover:underline">Liked Songs</span>
-              <span className="text-xs text-[#b3b3b3]">Playlist • 320 songs</span>
+              <span className="text-xs text-[#b3b3b3]">Playlist • {likedCount} {likedCount === 1 ? 'song' : 'songs'}</span>
             </div>
           </Link>
 
