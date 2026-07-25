@@ -4,6 +4,7 @@ import { uploadAudioToCloudinary, uploadImageToCloudinary, deleteFromCloudinary 
 import path from "path";
 import fs from "fs";
 import { normalizeArtist } from "../utils/normalizeArtist";
+import { compressAudio } from "../services/audioCompressionService";
 
 export const uploadTrack = async (req: Request, res: Response): Promise<any> => {
   try {
@@ -16,9 +17,12 @@ export const uploadTrack = async (req: Request, res: Response): Promise<any> => 
     const coverFile = files["coverArt"] ? files["coverArt"][0] : null;
     const metadata = req.body;
 
+    let compressedAudioPath = "";
+
     const cleanupTempFiles = () => {
       if (file && file.path) fs.unlink(file.path, () => {});
       if (coverFile && coverFile.path) fs.unlink(coverFile.path, () => {});
+      if (compressedAudioPath) fs.unlink(compressedAudioPath, () => {});
     };
 
     // Validate MIME type
@@ -56,16 +60,36 @@ export const uploadTrack = async (req: Request, res: Response): Promise<any> => 
     const uniqueId = `local-${Date.now()}`;
     const coverUniqueId = `cover-${Date.now()}`;
 
+    // Audio Compression
+    let finalAudioPath = file.path;
+    let finalFileSize = file.size;
+    let ext = path.extname(file.originalname).replace(".", "") || "mp3";
+
+    if (file.size > 5 * 1024 * 1024) {
+      try {
+        compressedAudioPath = `${file.path}_compressed.mp3`;
+        console.log(`Compressing ${file.path} to ${compressedAudioPath}...`);
+        await compressAudio(file.path, compressedAudioPath, "160k");
+        
+        finalAudioPath = compressedAudioPath;
+        const stats = fs.statSync(compressedAudioPath);
+        finalFileSize = stats.size;
+        ext = "mp3"; // Since we transcoded to mp3
+        console.log(`Compression successful. Original size: ${file.size}, New size: ${finalFileSize}`);
+      } catch (err) {
+        console.error("Compression failed, falling back to original file:", err);
+        finalAudioPath = file.path;
+        finalFileSize = file.size;
+      }
+    }
+
     // Upload to Cloudinary
-    const secureUrl = await uploadAudioToCloudinary(file.path, uniqueId);
+    const secureUrl = await uploadAudioToCloudinary(finalAudioPath, uniqueId);
     let albumArtUrl = metadata.albumArt || "";
 
     if (coverFile) {
       albumArtUrl = await uploadImageToCloudinary(coverFile.path, coverUniqueId);
     }
-
-    // Get format from file extension
-    const ext = path.extname(file.originalname).replace(".", "") || "mp3";
 
     // Save to MongoDB
     const newSong = new Song({
@@ -77,7 +101,7 @@ export const uploadTrack = async (req: Request, res: Response): Promise<any> => 
       albumArt: albumArtUrl,
       filePath: secureUrl,
       streamUrl: secureUrl,
-      fileSize: file.size,
+      fileSize: finalFileSize,
       format: ext,
       status: "ready",
       cloudinaryPublicId: uniqueId,

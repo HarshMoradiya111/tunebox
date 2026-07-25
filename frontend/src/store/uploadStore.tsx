@@ -84,7 +84,13 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     // We will just loop over the captured `tracks` for simplicity.
     const pendingTracks = tracks.filter(t => t.status === "pending" || t.status === "error");
 
-    for (const track of pendingTracks) {
+    const CONCURRENCY_LIMIT = 4;
+    let index = 0;
+
+    const uploadNext = async (): Promise<void> => {
+      if (index >= pendingTracks.length) return;
+      const track = pendingTracks[index++];
+
       updateTrackField(track.id, "status", "uploading");
       updateTrackField(track.id, "progress", 0);
       
@@ -129,7 +135,17 @@ export function UploadProvider({ children }: { children: ReactNode }) {
           updateTrackField(track.id, "status", "error");
         }
       }
+
+      // Continue to next track in the queue
+      await uploadNext();
+    };
+
+    const workers = [];
+    for (let i = 0; i < Math.min(CONCURRENCY_LIMIT, pendingTracks.length); i++) {
+      workers.push(uploadNext());
     }
+
+    await Promise.all(workers);
   };
 
   return (

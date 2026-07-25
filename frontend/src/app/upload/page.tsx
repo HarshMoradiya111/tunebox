@@ -58,16 +58,16 @@ export default function UploadPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">Upload Music</h1>
         
-        {storageUsage && (
+        {storageUsage && storageUsage.storage && (
           <div className="flex items-center gap-2 text-sm text-[#b3b3b3] bg-[#282828] py-1.5 px-3 rounded-full">
             <HardDrive className="w-4 h-4" />
             <span>
-              Storage: {(storageUsage.storage.usage / (1024 * 1024)).toFixed(1)} MB / {(storageUsage.storage.limit / (1024 * 1024)).toFixed(1)} MB
+              Storage: {(storageUsage.storage.usage / (1024 * 1024)).toFixed(1)} MB / {((storageUsage.storage.limit || 26843545600) / (1024 * 1024)).toFixed(1)} MB
             </span>
             <div className="w-16 h-1.5 bg-[#404040] rounded-full overflow-hidden ml-1">
               <div 
                 className="h-full bg-[#1db954]"
-                style={{ width: `${(storageUsage.storage.usage / storageUsage.storage.limit) * 100}%` }}
+                style={{ width: `${(storageUsage.storage.usage / (storageUsage.storage.limit || 26843545600)) * 100}%` }}
               />
             </div>
           </div>
