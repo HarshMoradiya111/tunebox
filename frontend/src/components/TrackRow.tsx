@@ -25,14 +25,25 @@ function mockToPlayerTrack(t: MockTrack): PlayerTrack {
     albumArt: t.albumArt,
     duration: t.duration,
     streamUrl: t.streamUrl, // From Phase 7 pre-fetched cache
+    isLiked: t.isLiked,
   };
 }
 
 export default function TrackRow({ track, index, allTracks }: TrackRowProps) {
   const { currentTrack, isPlaying, playTrack, playQueue, togglePlay, addToQueue, pause } =
     usePlayer();
-  const [isLiked, setIsLiked] = useState(false);
+  const [isLiked, setIsLiked] = useState(track.isLiked || false);
   const [isDeleted, setIsDeleted] = useState(false);
+  
+  const handleToggleLike = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsLiked(!isLiked);
+    try {
+      import("@/lib/api").then(api => api.toggleLikeTrack(track.id));
+    } catch (err) {
+      setIsLiked(isLiked);
+    }
+  };
   
   // Edit mode states
   const [isEditing, setIsEditing] = useState(false);
@@ -255,7 +266,7 @@ export default function TrackRow({ track, index, allTracks }: TrackRowProps) {
               </>
             )}
             <button
-              onClick={(e) => { e.stopPropagation(); setIsLiked(!isLiked); }}
+              onClick={handleToggleLike}
               className={`opacity-0 group-hover:opacity-100 transition-opacity ${
                 isLiked ? "opacity-100 text-[#1db954]" : "text-[#b3b3b3] hover:text-white"
               }`}

@@ -8,6 +8,7 @@ export interface MockTrack {
   duration: number; // seconds
   dateAdded: string;
   streamUrl?: string;
+  isLiked?: boolean;
 }
 
 export interface MockMediaItem {

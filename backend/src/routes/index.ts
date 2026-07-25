@@ -6,6 +6,7 @@ import fetchSongRoutes from "./fetchSong";
 import streamRoutes from "./stream";
 import musicRoutes from "./musicRoutes";
 import uploadRoutes from "./upload";
+import trackRoutes from "./tracks";
 
 const router = Router();
 
@@ -17,5 +18,6 @@ router.use("/playlist", playlistRoutes);
 router.use("/fetch-song", fetchSongRoutes);
 router.use("/stream", streamRoutes);
 router.use("/upload", uploadRoutes);
+router.use("/tracks", trackRoutes);
 
 export default router;

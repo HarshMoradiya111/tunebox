@@ -163,6 +163,7 @@ export interface ApiSong {
   format: string;
   status: "pending" | "downloading" | "ready" | "failed";
   errorMessage?: string;
+  isLiked?: boolean;
 }
 
 /** Helper to map ApiSong to PlayerTrack */
@@ -176,6 +177,7 @@ export function mapSongToPlayerTrack(song: ApiSong): import("../store/playerStor
     albumArt: song.albumArt,
     duration: song.duration,
     streamUrl: song.streamUrl,
+    isLiked: song.isLiked,
   };
 }
 
@@ -252,4 +254,32 @@ export async function updateUploadedTrack(songId: string, data: { title?: string
 export async function fetchUploadedTracks(): Promise<import("../store/playerStore").PlayerTrack[]> {
   const res = await apiFetch<ApiSong[]>("/upload");
   return res.map(mapSongToPlayerTrack);
+}
+
+// --- Features: Liked, History, Local Search ---
+
+export async function toggleLikeTrack(songId: string): Promise<import("../store/playerStore").PlayerTrack> {
+  const res = await apiFetch<{ success: boolean; data: ApiSong }>(`/tracks/${songId}/like`, {
+    method: "PATCH",
+  });
+  return mapSongToPlayerTrack(res.data);
+}
+
+export async function fetchLikedTracks(): Promise<import("../store/playerStore").PlayerTrack[]> {
+  const res = await apiFetch<{ success: boolean; data: ApiSong[] }>("/tracks/liked");
+  return res.data.map(mapSongToPlayerTrack);
+}
+
+export async function recordTrackPlay(songId: string): Promise<void> {
+  await apiFetch(`/tracks/${songId}/play`, { method: "POST" });
+}
+
+export async function fetchRecentlyPlayed(): Promise<import("../store/playerStore").PlayerTrack[]> {
+  const res = await apiFetch<{ success: boolean; data: ApiSong[] }>("/tracks/recently-played");
+  return res.data.map(mapSongToPlayerTrack);
+}
+
+export async function searchLibrary(query: string): Promise<import("../store/playerStore").PlayerTrack[]> {
+  const res = await apiFetch<{ success: boolean; data: ApiSong[] }>(`/tracks/library/search?q=${encodeURIComponent(query)}`);
+  return res.data.map(mapSongToPlayerTrack);
 }

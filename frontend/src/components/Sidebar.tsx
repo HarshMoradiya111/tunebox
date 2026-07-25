@@ -90,7 +90,7 @@ export default function Sidebar() {
 
           {/* Quick Liked Songs Pill */}
           <Link
-            href="/playlist/liked-songs"
+            href="/liked"
             className="flex items-center gap-3 p-2 rounded-md hover:bg-[#1a1a1a] transition-colors group mb-2"
           >
             <div className="w-10 h-10 rounded bg-gradient-to-br from-indigo-600 to-purple-800 flex items-center justify-center text-white">

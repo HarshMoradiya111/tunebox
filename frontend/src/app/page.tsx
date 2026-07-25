@@ -5,6 +5,7 @@ import CarouselRow from "@/components/CarouselRow";
 import {
   fetchFeaturedPlaylists,
   fetchNewReleases,
+  fetchRecentlyPlayed,
   ApiFeaturedPlaylist,
   ApiNewRelease,
 } from "@/lib/api";
@@ -14,6 +15,7 @@ import {
   MOCK_RECENT_GRID,
   MockMediaItem,
 } from "@/lib/mockData";
+import { PlayerTrack } from "@/store/playerStore";
 
 // Convert API data to the MockMediaItem shape the Card component expects
 function playlistToMediaItem(p: ApiFeaturedPlaylist): MockMediaItem {
@@ -36,19 +38,34 @@ function releaseToMediaItem(r: ApiNewRelease): MockMediaItem {
   };
 }
 
+function playerTrackToMediaItem(t: PlayerTrack): MockMediaItem {
+  return {
+    id: t.spotifyId || t.id,
+    title: t.title,
+    subtitle: t.artist,
+    image: t.albumArt,
+    type: "album",
+  };
+}
+
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
   let featuredItems: MockMediaItem[];
   let newReleaseItems: MockMediaItem[];
+  let recentlyPlayedItems: MockMediaItem[] = [];
 
   try {
-    const [featured, releases] = await Promise.all([
+    const [featured, releases, recent] = await Promise.all([
       fetchFeaturedPlaylists(),
       fetchNewReleases(),
+      fetchRecentlyPlayed().catch(() => []),
     ]);
     featuredItems = featured.map(playlistToMediaItem);
     newReleaseItems = releases.map(releaseToMediaItem);
+    if (recent && Array.isArray(recent)) {
+      recentlyPlayedItems = recent.map(playerTrackToMediaItem);
+    }
   } catch {
     // Fallback to mock data when backend is not running
     featuredItems = MOCK_FEATURED_PLAYLISTS;
@@ -98,6 +115,11 @@ export default async function Home() {
           ))}
         </div>
       </section>
+
+      {/* Recently Played Row (if any) */}
+      {recentlyPlayedItems.length > 0 && (
+        <CarouselRow title="Recently Played" items={recentlyPlayedItems} />
+      )}
 
       {/* Featured Playlists Row */}
       <CarouselRow title="Featured Playlists" items={featuredItems} />

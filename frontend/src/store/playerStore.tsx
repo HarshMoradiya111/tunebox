@@ -22,6 +22,7 @@ export interface PlayerTrack {
   albumArt: string;
   duration: number; // seconds
   streamUrl?: string; // backend stream URL
+  isLiked?: boolean;
 }
 
 interface PlayerState {
@@ -112,6 +113,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       setCurrentTime(0);
       if (autoPlay) setIsPlaying(true);
+
+      // Record play history in background if it's a real track (has ID)
+      if (track.id && autoPlay) {
+        import("@/lib/api").then(api => api.recordTrackPlay(track.id).catch(() => {}));
+      }
 
       if (track.streamUrl) {
         // Already has a stream URL — ReactPlayer will handle playback via the URL prop

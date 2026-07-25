@@ -51,6 +51,20 @@ export default function PlayerBar() {
 
   const [isLiked, setIsLiked] = useState(false);
   const [isDraggingSeek, setIsDraggingSeek] = useState(false);
+  
+  useEffect(() => {
+    setIsLiked(currentTrack?.isLiked || false);
+  }, [currentTrack]);
+  
+  const handleToggleLike = async () => {
+    if (!currentTrack) return;
+    setIsLiked(!isLiked); // optimistic update
+    try {
+      import("@/lib/api").then(api => api.toggleLikeTrack(currentTrack.id));
+    } catch (e) {
+      setIsLiked(isLiked); // revert on failure
+    }
+  };
 
   // Global Keyboard Shortcuts
   useEffect(() => {
@@ -131,7 +145,7 @@ export default function PlayerBar() {
               </span>
             </div>
             <button
-              onClick={() => setIsLiked(!isLiked)}
+              onClick={handleToggleLike}
               className={`p-1.5 rounded-full hover:scale-105 transition-transform ${
                 isLiked ? "text-[#1db954]" : "text-[#b3b3b3] hover:text-white"
               }`}

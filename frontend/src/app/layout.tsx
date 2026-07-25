@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import PlayerBar from "@/components/PlayerBar";
+import KeyboardShortcuts from "@/components/KeyboardShortcuts";
 import { PlayerProvider } from "@/store/playerStore";
 import "./globals.css";
 
@@ -31,6 +32,9 @@ export default function RootLayout({
 
           {/* Fixed Player Bar at Bottom */}
           <PlayerBar />
+
+          {/* Keyboard Shortcuts Modal Overlay */}
+          <KeyboardShortcuts />
         </PlayerProvider>
       </body>
     </html>
