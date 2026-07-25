@@ -248,7 +248,7 @@ export default function PlayerBar() {
               </Link>
             </div>
 
-            <div className="flex items-center gap-1 shrink-0">
+            <div className="flex items-center gap-1 shrink-0 pr-1">
               <button
                 onClick={(e) => { e.stopPropagation(); handleToggleLike(); }}
                 aria-label={isLiked ? "Remove from liked songs" : "Save to your liked songs"}
@@ -257,16 +257,6 @@ export default function PlayerBar() {
                 }`}
               >
                 <Heart className={`w-4 h-4 ${isLiked ? "fill-current" : ""}`} />
-              </button>
-
-              {/* Mobile Prev Track Button */}
-              <button
-                onClick={(e) => { e.stopPropagation(); prevTrack(); }}
-                disabled={!currentTrack}
-                aria-label="Previous track"
-                className="md:hidden p-1.5 text-[#b3b3b3] hover:text-white disabled:opacity-30 flex items-center justify-center shrink-0"
-              >
-                <SkipBack className="w-4 h-4 fill-current" />
               </button>
 
               {/* Mobile Play/Pause Button */}
