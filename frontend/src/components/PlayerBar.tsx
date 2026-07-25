@@ -16,9 +16,14 @@ import {
   ListMusic,
   Laptop2,
   Loader2,
+  Timer,
+  Maximize2,
+  Ear
 } from "lucide-react";
 import { usePlayer } from "@/store/playerStore";
 import { useState, useEffect } from "react";
+import QueuePanel from "./QueuePanel";
+import NowPlayingView from "./NowPlayingView";
 
 function formatTime(seconds: number): string {
   if (!seconds || isNaN(seconds)) return "0:00";
@@ -45,12 +50,22 @@ export default function PlayerBar() {
     toggleMute,
     isShuffled,
     repeatMode,
+    normalizeVolume,
     toggleShuffle,
     cycleRepeat,
+    toggleNormalizeVolume,
   } = usePlayer();
 
   const [isLiked, setIsLiked] = useState(false);
   const [isDraggingSeek, setIsDraggingSeek] = useState(false);
+  
+  // Advanced Features State
+  const [isQueueOpen, setIsQueueOpen] = useState(false);
+  const [isNowPlayingOpen, setIsNowPlayingOpen] = useState(false);
+  const [sleepTimerMinutes, setSleepTimerMinutes] = useState<number | 'end' | null>(null);
+  const [sleepTimerEndTime, setSleepTimerEndTime] = useState<number | null>(null);
+  const [sleepTimeRemaining, setSleepTimeRemaining] = useState<number | null>(null);
+  const [isSleepMenuOpen, setIsSleepMenuOpen] = useState(false);
   
   useEffect(() => {
     setIsLiked(currentTrack?.isLiked || false);
@@ -63,6 +78,42 @@ export default function PlayerBar() {
       import("@/lib/api").then(api => api.toggleLikeTrack(currentTrack.id));
     } catch (e) {
       setIsLiked(isLiked); // revert on failure
+    }
+  };
+
+  // Sleep Timer Logic
+  useEffect(() => {
+    if (!sleepTimerEndTime) {
+      setSleepTimeRemaining(null);
+      return;
+    }
+    
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const remaining = Math.max(0, sleepTimerEndTime - now);
+      setSleepTimeRemaining(remaining);
+      
+      if (remaining === 0) {
+        pause();
+        setSleepTimerEndTime(null);
+        setSleepTimerMinutes(null);
+      }
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [sleepTimerEndTime, pause]);
+
+  const handleSetSleepTimer = (minutes: number | 'end' | null) => {
+    setSleepTimerMinutes(minutes);
+    setIsSleepMenuOpen(false);
+    
+    if (minutes === null) {
+      setSleepTimerEndTime(null);
+    } else if (minutes === 'end') {
+      const remainingSecs = duration - currentTime;
+      setSleepTimerEndTime(Date.now() + remainingSecs * 1000);
+    } else {
+      setSleepTimerEndTime(Date.now() + minutes * 60 * 1000);
     }
   };
 
@@ -128,13 +179,19 @@ export default function PlayerBar() {
       <div className="flex items-center gap-3 w-1/4 min-w-[180px]">
         {currentTrack ? (
           <>
-            <div className="relative w-14 h-14 rounded-md overflow-hidden bg-[#282828] shrink-0">
+            <div 
+              className="relative w-14 h-14 rounded-md overflow-hidden bg-[#282828] shrink-0 cursor-pointer group"
+              onClick={() => setIsNowPlayingOpen(true)}
+            >
               <Image
                 src={currentTrack.albumArt || "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300&h=300&fit=crop"}
                 alt={currentTrack.title}
                 fill
-                className="object-cover"
+                className="object-cover group-hover:brightness-50 transition-all"
               />
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <Maximize2 className="w-5 h-5 text-white" />
+              </div>
             </div>
             <div className="flex flex-col min-w-0">
               <span className="text-white text-sm font-medium hover:underline truncate cursor-pointer">
@@ -237,11 +294,50 @@ export default function PlayerBar() {
 
       {/* Right: Volume & Utilities */}
       <div className="hidden sm:flex items-center justify-end gap-3 w-1/4 text-[#b3b3b3]">
-        <button className="hover:text-white transition-colors p-1">
+        
+        {/* Sleep Timer */}
+        <div className="relative">
+          <button 
+            onClick={() => setIsSleepMenuOpen(!isSleepMenuOpen)}
+            className={`transition-colors p-1 relative ${sleepTimerEndTime ? "text-[#1db954]" : "hover:text-white"}`}
+          >
+            <Timer className="w-4 h-4" />
+            {sleepTimerEndTime && sleepTimeRemaining !== null && (
+               <span className="absolute -top-2 -right-3 text-[9px] bg-[#1db954] text-black px-1 rounded-sm font-bold">
+                 {formatTime(sleepTimeRemaining / 1000)}
+               </span>
+            )}
+          </button>
+          
+          {isSleepMenuOpen && (
+            <div className="absolute bottom-10 right-0 w-40 bg-[#282828] rounded-md shadow-2xl py-1 text-sm overflow-hidden z-50">
+              <div className="px-3 py-2 text-xs font-bold text-[#b3b3b3] uppercase tracking-wider border-b border-[#3e3e3e]">Sleep Timer</div>
+              {[15, 30, 45, 60].map(m => (
+                <button key={m} onClick={() => handleSetSleepTimer(m as number)} className="w-full text-left px-3 py-2 hover:bg-[#3e3e3e] text-white">
+                  {m} Minutes
+                </button>
+              ))}
+              <button onClick={() => handleSetSleepTimer('end')} className="w-full text-left px-3 py-2 hover:bg-[#3e3e3e] text-white">End of track</button>
+              <button onClick={() => handleSetSleepTimer(null)} className="w-full text-left px-3 py-2 hover:bg-[#3e3e3e] text-red-400 border-t border-[#3e3e3e]">Turn off timer</button>
+            </div>
+          )}
+        </div>
+        
+        {/* Queue */}
+        <button 
+          onClick={() => setIsQueueOpen(!isQueueOpen)}
+          className={`transition-colors p-1 ${isQueueOpen ? "text-[#1db954]" : "hover:text-white"}`}
+        >
           <ListMusic className="w-4 h-4" />
         </button>
-        <button className="hover:text-white transition-colors p-1">
-          <Laptop2 className="w-4 h-4" />
+
+        {/* Volume Normalization */}
+        <button 
+          onClick={toggleNormalizeVolume}
+          className={`transition-colors p-1 ${normalizeVolume ? "text-[#1db954]" : "hover:text-white"}`}
+          title="Normalize Volume"
+        >
+          <Ear className="w-4 h-4" />
         </button>
         <div className="flex items-center gap-2 w-28">
           <button
@@ -264,6 +360,9 @@ export default function PlayerBar() {
           />
         </div>
       </div>
+
+      <QueuePanel isOpen={isQueueOpen} onClose={() => setIsQueueOpen(false)} />
+      <NowPlayingView isOpen={isNowPlayingOpen} onClose={() => setIsNowPlayingOpen(false)} />
     </footer>
   );
 }

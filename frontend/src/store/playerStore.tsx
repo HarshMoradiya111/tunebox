@@ -45,6 +45,8 @@ interface PlayerState {
   repeatMode: "off" | "all" | "one";
   // Saved Playlists
   savedPlaylists: { id: string; name: string }[];
+  // Volume Normalization
+  normalizeVolume: boolean;
 }
 
 interface PlayerActions {
@@ -52,6 +54,9 @@ interface PlayerActions {
   playTrack: (track: PlayerTrack) => void;
   playQueue: (tracks: PlayerTrack[], startIndex?: number) => void;
   addToQueue: (track: PlayerTrack) => void;
+  playNext: (track: PlayerTrack) => void;
+  removeFromQueue: (index: number) => void;
+  reorderQueue: (startIndex: number, endIndex: number) => void;
   togglePlay: () => void;
   pause: () => void;
   resume: () => void;
@@ -63,6 +68,7 @@ interface PlayerActions {
   seekPercent: (percent: number) => void;
   setVolume: (vol: number) => void;
   toggleMute: () => void;
+  toggleNormalizeVolume: () => void;
   // Modes
   toggleShuffle: () => void;
   cycleRepeat: () => void;
@@ -96,6 +102,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [isShuffled, setIsShuffled] = useState(false);
   const [repeatMode, setRepeatMode] = useState<"off" | "all" | "one">("off");
   const [savedPlaylists, setSavedPlaylists] = useState<{ id: string; name: string }[]>([]);
+  const [normalizeVolume, setNormalizeVolume] = useState(false);
+
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const compressorNodeRef = useRef<DynamicsCompressorNode | null>(null);
 
   useEffect(() => {
     const stored = localStorage.getItem("savedPlaylists");
@@ -104,6 +115,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         setSavedPlaylists(JSON.parse(stored));
       } catch (e) {}
     }
+    const storedVol = localStorage.getItem("normalizeVolume");
+    if (storedVol) setNormalizeVolume(storedVol === "true");
   }, []);
 
   // --- Internal: load a track into the audio element ---
@@ -258,8 +271,57 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     [currentTrack, playTrack]
   );
 
+  const playNext = useCallback(
+    (track: PlayerTrack) => {
+      setQueue((prev) => {
+        const newQueue = [...prev];
+        newQueue.splice(queueIndex + 1, 0, track);
+        return newQueue;
+      });
+      setOriginalQueue((prev) => {
+        const newQueue = [...prev];
+        const originalIndex = originalQueue.findIndex(t => t.id === currentTrack?.id);
+        const insertIdx = originalIndex !== -1 ? originalIndex + 1 : prev.length;
+        newQueue.splice(insertIdx, 0, track);
+        return newQueue;
+      });
+      if (!currentTrack) playTrack(track);
+    },
+    [queueIndex, currentTrack, originalQueue, playTrack]
+  );
+
+  const removeFromQueue = useCallback((index: number) => {
+    setQueue((prev) => {
+      const newQueue = [...prev];
+      newQueue.splice(index, 1);
+      return newQueue;
+    });
+    if (index < queueIndex) {
+      setQueueIndex(q => q - 1);
+    }
+  }, [queueIndex]);
+
+  const reorderQueue = useCallback((startIndex: number, endIndex: number) => {
+    setQueue((prev) => {
+      const newQueue = [...prev];
+      const [removed] = newQueue.splice(startIndex, 1);
+      newQueue.splice(endIndex, 0, removed);
+      return newQueue;
+    });
+    setQueueIndex(prev => {
+      if (startIndex === prev) return endIndex;
+      if (startIndex < prev && endIndex >= prev) return prev - 1;
+      if (startIndex > prev && endIndex <= prev) return prev + 1;
+      return prev;
+    });
+  }, []);
+
   const togglePlay = useCallback(() => {
     setIsPlaying((prev) => !prev);
+    // Resume audio context if suspended (needed for Safari/Chrome autoplay policy)
+    if (audioContextRef.current?.state === "suspended") {
+      audioContextRef.current.resume();
+    }
   }, []);
 
   const pause = useCallback(() => {
@@ -321,6 +383,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   const toggleMute = useCallback(() => {
     setIsMuted((prev) => !prev);
+  }, []);
+
+  const toggleNormalizeVolume = useCallback(() => {
+    setNormalizeVolume(prev => {
+      const next = !prev;
+      localStorage.setItem("normalizeVolume", String(next));
+      return next;
+    });
   }, []);
 
   const toggleShuffle = useCallback(() => {
@@ -389,9 +459,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     isLoading,
     isShuffled,
     repeatMode,
+    normalizeVolume,
     playTrack,
     playQueue,
     addToQueue,
+    playNext,
+    removeFromQueue,
+    reorderQueue,
     togglePlay,
     pause,
     resume,
@@ -401,6 +475,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     seekPercent,
     setVolume,
     toggleMute,
+    toggleNormalizeVolume,
     toggleShuffle,
     cycleRepeat,
     savedPlaylists,
@@ -442,6 +517,56 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       }
     }
   }, [isPlaying, currentStreamUrl]);
+
+  // Handle Web Audio API graph for volume normalization
+  useEffect(() => {
+    if (!playerRef.current || !currentStreamUrl) return;
+    
+    try {
+      if (!audioContextRef.current) {
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioContextClass) {
+          audioContextRef.current = new AudioContextClass();
+        }
+      }
+      
+      const ctx = audioContextRef.current;
+      if (!ctx) return;
+      
+      // We only ever want ONE MediaElementSource per audio element
+      if (!sourceNodeRef.current && !(playerRef.current as any).dataset.sourceCreated) {
+        sourceNodeRef.current = ctx.createMediaElementSource(playerRef.current);
+        (playerRef.current as any).dataset.sourceCreated = "true";
+      }
+
+      if (!compressorNodeRef.current) {
+        compressorNodeRef.current = ctx.createDynamicsCompressor();
+        compressorNodeRef.current.threshold.setValueAtTime(-24, ctx.currentTime);
+        compressorNodeRef.current.knee.setValueAtTime(30, ctx.currentTime);
+        compressorNodeRef.current.ratio.setValueAtTime(12, ctx.currentTime);
+        compressorNodeRef.current.attack.setValueAtTime(0.003, ctx.currentTime);
+        compressorNodeRef.current.release.setValueAtTime(0.25, ctx.currentTime);
+      }
+
+      const source = sourceNodeRef.current;
+      const compressor = compressorNodeRef.current;
+
+      if (source && compressor) {
+        // Disconnect existing connections first
+        source.disconnect();
+        compressor.disconnect();
+        
+        if (normalizeVolume) {
+          source.connect(compressor);
+          compressor.connect(ctx.destination);
+        } else {
+          source.connect(ctx.destination);
+        }
+      }
+    } catch (e) {
+      console.warn("Web Audio API error (CORS or initialization issue):", e);
+    }
+  }, [normalizeVolume, currentStreamUrl]);
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => {

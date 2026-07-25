@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Play, Pause, Heart, MoreHorizontal, ListPlus, Trash2, Pencil, Check, X } from "lucide-react";
+import { Play, Pause, Heart, MoreHorizontal, ListPlus, Trash2, Pencil, Check, X, PlaySquare } from "lucide-react";
 import { useState, useEffect } from "react";
 import { MockTrack } from "@/lib/mockData";
 import { usePlayer, PlayerTrack } from "@/store/playerStore";
@@ -33,7 +33,7 @@ function mockToPlayerTrack(t: MockTrack): PlayerTrack {
 }
 
 export default function TrackRow({ track, index, allTracks, selectable, isSelected, onToggleSelect }: TrackRowProps) {
-  const { currentTrack, isPlaying, playTrack, playQueue, togglePlay, addToQueue, pause } =
+  const { currentTrack, isPlaying, playTrack, playQueue, togglePlay, addToQueue, playNext, pause } =
     usePlayer();
   const [isLiked, setIsLiked] = useState(track.isLiked || false);
   const [isDeleted, setIsDeleted] = useState(false);
@@ -322,6 +322,16 @@ export default function TrackRow({ track, index, allTracks, selectable, isSelect
               <Heart className={`w-4 h-4 ${isLiked ? "fill-current" : ""}`} />
             </button>
             <span>{formatDuration(track.duration)}</span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                playNext(mockToPlayerTrack(track));
+              }}
+              className="opacity-0 group-hover:opacity-100 text-[#b3b3b3] hover:text-white transition-opacity"
+              title="Play next"
+            >
+              <PlaySquare className="w-4 h-4" />
+            </button>
             <button
               onClick={(e) => {
                 e.stopPropagation();
