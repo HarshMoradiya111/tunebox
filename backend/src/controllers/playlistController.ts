@@ -37,8 +37,11 @@ export async function getPlaylistById(
   try {
     const spotifyId = req.params.spotifyId as string;
 
-    // Check database
-    const playlistDoc = await Playlist.findOne({ spotifyId }).lean();
+    // Check database by spotifyId or MongoDB _id
+    let playlistDoc: any = await Playlist.findOne({ spotifyId }).lean();
+    if (!playlistDoc && mongoose.Types.ObjectId.isValid(spotifyId)) {
+      playlistDoc = await Playlist.findById(spotifyId).lean();
+    }
 
     if (playlistDoc) {
       if (playlistDoc.isUserCreated) {
