@@ -1,35 +1,27 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { parseBlob } from "music-metadata-browser";
-import axios from "axios";
-import { Upload, Music, X, Play, HardDrive } from "lucide-react";
+import { useRef, useEffect, useState } from "react";
+import { Upload, Music, X, HardDrive } from "lucide-react";
 import Image from "next/image";
-import { mapSongToPlayerTrack, fetchStorageUsage } from "@/lib/api";
+import { fetchStorageUsage } from "@/lib/api";
+import { useUpload } from "@/store/uploadStore";
 import { usePlayer } from "@/store/playerStore";
 
-interface LocalTrack {
-  id: string;
-  file: File;
-  title: string;
-  artist: string;
-  album: string;
-  duration: number;
-  albumArt: string; // Object URL or empty string
-  coverFile?: File; // Extracted cover file to send to backend
-  progress: number;
-  status: "pending" | "uploading" | "success" | "error" | "skipped";
-}
-
 export default function UploadPage() {
-  const [tracks, setTracks] = useState<LocalTrack[]>([]);
+  const { 
+    tracks, 
+    processFiles, 
+    removeTrack, 
+    updateTrackField, 
+    uploadAll 
+  } = useUpload();
+  
+  const { addToQueue } = usePlayer();
+
   const [isDragging, setIsDragging] = useState(false);
   const [storageUsage, setStorageUsage] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
-  const { addToQueue } = usePlayer();
-
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -43,43 +35,6 @@ export default function UploadPage() {
   useEffect(() => {
     fetchStorageUsage().then(data => setStorageUsage(data)).catch(err => console.error(err));
   }, []);
-
-  const processFiles = async (files: File[]) => {
-    const audioFiles = files.filter(f => f.type.startsWith("audio/"));
-    
-    for (const file of audioFiles) {
-      try {
-        const metadata = await parseBlob(file);
-        
-        let albumArtUrl = "";
-        let coverFile: File | undefined;
-
-        if (metadata.common.picture && metadata.common.picture.length > 0) {
-          const pic = metadata.common.picture[0];
-          const blob = new Blob([new Uint8Array(pic.data)], { type: pic.format });
-          albumArtUrl = URL.createObjectURL(blob);
-          coverFile = new File([blob], 'cover.jpg', { type: pic.format });
-        }
-
-        const newTrack: LocalTrack = {
-          id: crypto.randomUUID(),
-          file,
-          title: metadata.common.title || file.name.replace(/\.[^/.]+$/, ""),
-          artist: metadata.common.artist || "Unknown Artist",
-          album: metadata.common.album || "Unknown Album",
-          duration: metadata.format.duration || 0,
-          albumArt: albumArtUrl,
-          coverFile,
-          progress: 0,
-          status: "pending"
-        };
-
-        setTracks(prev => [...prev, newTrack]);
-      } catch (err) {
-        console.error("Error parsing file metadata:", err);
-      }
-    }
-  };
 
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
@@ -96,80 +51,6 @@ export default function UploadPage() {
 
   const handleDragLeave = () => {
     setIsDragging(false);
-  };
-
-  const removeTrack = (id: string) => {
-    setTracks(prev => prev.filter(t => t.id !== id));
-  };
-
-  const updateTrackField = (id: string, field: keyof LocalTrack, value: string | number) => {
-    setTracks(prev => prev.map(t => t.id === id ? { ...t, [field]: value } : t));
-  };
-
-  const uploadAll = async () => {
-    const pendingTracks = tracks.filter(t => t.status === "pending" || t.status === "error");
-    
-    for (const track of pendingTracks) {
-      updateTrackField(track.id, "status", "uploading");
-      updateTrackField(track.id, "progress", 0);
-      
-      const formData = new FormData();
-      formData.append("audio", track.file);
-      formData.append("title", track.title);
-      formData.append("artist", track.artist);
-      formData.append("album", track.album);
-      formData.append("duration", track.duration.toString());
-      if (track.coverFile) {
-        formData.append("coverArt", track.coverFile);
-      }
-
-      const performUpload = async (forceUpload = false) => {
-        if (forceUpload) formData.append("force", "true");
-        return axios.post(`${API_URL}/upload`, formData, {
-          headers: {
-            "Content-Type": "multipart/form-data"
-          },
-          onUploadProgress: (progressEvent) => {
-            if (progressEvent.total) {
-              const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-              updateTrackField(track.id, "progress", percentCompleted);
-            }
-          }
-        });
-      };
-
-      try {
-        const response = await performUpload();
-        
-        updateTrackField(track.id, "status", "success");
-        if (response.data) {
-          addToQueue(mapSongToPlayerTrack(response.data));
-        }
-      } catch (err: any) {
-        if (err.response?.status === 409) {
-          // Ask user to force upload
-          const proceed = window.confirm(`"${track.title}" by ${track.artist} already exists in your library. Do you want to upload it anyway?`);
-          if (proceed) {
-            updateTrackField(track.id, "progress", 0);
-            try {
-              const response = await performUpload(true);
-              updateTrackField(track.id, "status", "success");
-              if (response.data) {
-                addToQueue(mapSongToPlayerTrack(response.data));
-              }
-            } catch (err2) {
-              console.error("Force upload failed for", track.title, err2);
-              updateTrackField(track.id, "status", "error");
-            }
-          } else {
-            updateTrackField(track.id, "status", "skipped");
-          }
-        } else {
-          console.error("Upload failed for", track.title, err);
-          updateTrackField(track.id, "status", "error");
-        }
-      }
-    }
   };
 
   return (
@@ -250,7 +131,7 @@ export default function UploadPage() {
           <div className="flex justify-between items-end mb-4">
             <h2 className="text-xl font-bold">Selected Files ({tracks.length})</h2>
             <button 
-              onClick={uploadAll}
+              onClick={() => uploadAll(addToQueue)}
               disabled={!tracks.some(t => t.status === "pending" || t.status === "error")}
               className="bg-white text-black font-bold py-2 px-6 rounded-full hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
             >
