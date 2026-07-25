@@ -248,7 +248,7 @@ export default function PlayerBar() {
               </Link>
             </div>
 
-            <div className="flex items-center gap-0.5 shrink-0 pr-1">
+            <div className="flex items-center gap-0.5 shrink-0 pr-4 md:pr-0">
               <button
                 onClick={(e) => { e.stopPropagation(); handleToggleLike(); }}
                 aria-label={isLiked ? "Remove from liked songs" : "Save to your liked songs"}
