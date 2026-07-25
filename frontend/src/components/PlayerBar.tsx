@@ -253,6 +253,7 @@ export default function PlayerBar() {
                 className="text-[#b3b3b3] text-[11px] md:text-xs truncate hover:underline" 
                 onClick={(e) => {
                   if (window.innerWidth < 768) {
+                    e.preventDefault();
                     e.stopPropagation();
                     setIsNowPlayingOpen(true);
                   } else {
