@@ -102,6 +102,7 @@ export default async function Home() {
                   src={item.image}
                   alt={item.title}
                   fill
+                  sizes="64px"
                   className="object-cover"
                 />
               </div>

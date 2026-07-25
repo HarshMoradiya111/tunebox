@@ -161,12 +161,15 @@ export default function TrackRow({ track, index, allTracks }: TrackRowProps) {
       {/* Column 2: Cover Art, Title & Artist */}
       <div className="flex items-center gap-3 min-w-0">
         <div className="relative w-10 h-10 rounded overflow-hidden bg-[#242424] shrink-0">
-          <Image
-            src={track.albumArt}
-            alt={displayTitle}
-            fill
-            className="object-cover"
-          />
+          {track.albumArt && (
+            <Image
+              src={track.albumArt}
+              alt={displayTitle}
+              fill
+              sizes="40px"
+              className="object-cover"
+            />
+          )}
         </div>
         <div className="flex flex-col truncate w-full pr-2">
           {isEditing ? (
