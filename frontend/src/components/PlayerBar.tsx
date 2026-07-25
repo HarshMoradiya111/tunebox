@@ -248,15 +248,25 @@ export default function PlayerBar() {
               </Link>
             </div>
 
-            <div className="flex items-center gap-1 shrink-0 pr-1">
+            <div className="flex items-center gap-0.5 shrink-0 pr-1">
               <button
                 onClick={(e) => { e.stopPropagation(); handleToggleLike(); }}
                 aria-label={isLiked ? "Remove from liked songs" : "Save to your liked songs"}
-                className={`p-1.5 rounded-full hover:scale-105 transition-transform flex items-center justify-center ${
+                className={`p-1 rounded-full hover:scale-105 transition-transform flex items-center justify-center ${
                   isLiked ? "text-[#1db954]" : "text-[#b3b3b3] hover:text-white"
                 }`}
               >
                 <Heart className={`w-4 h-4 ${isLiked ? "fill-current" : ""}`} />
+              </button>
+
+              {/* Mobile Prev Track Button */}
+              <button
+                onClick={(e) => { e.stopPropagation(); prevTrack(); }}
+                disabled={!currentTrack}
+                aria-label="Previous track"
+                className="md:hidden p-1 text-[#b3b3b3] hover:text-white disabled:opacity-30 flex items-center justify-center shrink-0"
+              >
+                <SkipBack className="w-4 h-4 fill-current" />
               </button>
 
               {/* Mobile Play/Pause Button */}
@@ -264,14 +274,14 @@ export default function PlayerBar() {
                 onClick={(e) => { e.stopPropagation(); togglePlay(); }}
                 disabled={!currentTrack}
                 aria-label={isPlaying ? "Pause" : "Play"}
-                className="md:hidden p-1.5 text-white disabled:opacity-50 flex items-center justify-center shrink-0"
+                className="md:hidden p-1 text-white disabled:opacity-50 flex items-center justify-center shrink-0"
               >
                 {isLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin text-white" aria-hidden="true" />
+                  <Loader2 className="w-4.5 h-4.5 animate-spin text-white" aria-hidden="true" />
                 ) : isPlaying ? (
-                  <Pause className="w-5 h-5 fill-current text-white" aria-hidden="true" />
+                  <Pause className="w-4.5 h-4.5 fill-current text-white" aria-hidden="true" />
                 ) : (
-                  <Play className="w-5 h-5 fill-current text-white translate-x-0.5" aria-hidden="true" />
+                  <Play className="w-4.5 h-4.5 fill-current text-white translate-x-0.5" aria-hidden="true" />
                 )}
               </button>
 
@@ -280,7 +290,7 @@ export default function PlayerBar() {
                 onClick={(e) => { e.stopPropagation(); nextTrack(); }}
                 disabled={!currentTrack}
                 aria-label="Next track"
-                className="md:hidden p-1.5 text-[#b3b3b3] hover:text-white disabled:opacity-30 flex items-center justify-center shrink-0"
+                className="md:hidden p-1 text-[#b3b3b3] hover:text-white disabled:opacity-30 flex items-center justify-center shrink-0"
               >
                 <SkipForward className="w-4 h-4 fill-current" />
               </button>
