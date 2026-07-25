@@ -137,9 +137,7 @@ export default async function PlaylistPage({ params }: PlaylistPageProps) {
                   key={track.id}
                   track={track}
                   index={index}
-                  playlistId={id}
-                  playlistName={playlistName}
-                  tracks={tracks}
+                  allTracks={tracks}
                 />
               ))}
             </div>

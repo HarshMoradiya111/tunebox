@@ -656,10 +656,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const p = getActivePlayer();
     if (p) {
       if (isPlaying) {
-        p.play().catch((e: any) => console.error("Auto-play blocked:", e));
+        if (p.paused) {
+          p.play().catch((e: any) => console.error("Auto-play blocked:", e));
+        }
       } else {
-        if (player1Ref.current) player1Ref.current.pause();
-        if (player2Ref.current) player2Ref.current.pause();
+        if (player1Ref.current && !player1Ref.current.paused) player1Ref.current.pause();
+        if (player2Ref.current && !player2Ref.current.paused) player2Ref.current.pause();
       }
     }
   }, [isPlaying, currentStreamUrl, activePlayerId]);
@@ -737,7 +739,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
                   pendingSeekTime.current = null;
                 }
               }}
-              onCanPlay={() => { if (activePlayerId === 1) setIsLoading(false) }}
+              onCanPlay={(e) => { 
+                if (activePlayerId === 1) {
+                  setIsLoading(false);
+                  if (isPlaying) {
+                    e.currentTarget.play().catch(() => {});
+                  }
+                }
+              }}
               onPlay={() => { if (activePlayerId === 1) setIsPlaying(true) }}
               onPause={() => { if (activePlayerId === 1) setIsPlaying(false) }}
               onEnded={() => { if (activePlayerId === 1) onEnded() }}
@@ -756,7 +765,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
                   pendingSeekTime.current = null;
                 }
               }}
-              onCanPlay={() => { if (activePlayerId === 2) setIsLoading(false) }}
+              onCanPlay={(e) => { 
+                if (activePlayerId === 2) {
+                  setIsLoading(false);
+                  if (isPlaying) {
+                    e.currentTarget.play().catch(() => {});
+                  }
+                }
+              }}
               onPlay={() => { if (activePlayerId === 2) setIsPlaying(true) }}
               onPause={() => { if (activePlayerId === 2) setIsPlaying(false) }}
               onEnded={() => { if (activePlayerId === 2) onEnded() }}
