@@ -4,6 +4,7 @@ import Image from "next/image";
 import { X, GripVertical } from "lucide-react";
 import { usePlayer } from "@/store/playerStore";
 import { useState } from "react";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 
 interface QueuePanelProps {
   isOpen: boolean;
@@ -15,6 +16,8 @@ export default function QueuePanel({ isOpen, onClose }: QueuePanelProps) {
   
   // HTML5 Drag and Drop state
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
+  const focusRef = useFocusTrap(isOpen, onClose);
 
   if (!isOpen) return null;
 
@@ -53,10 +56,15 @@ export default function QueuePanel({ isOpen, onClose }: QueuePanelProps) {
   };
 
   return (
-    <div className="fixed inset-y-0 right-0 w-80 bg-[#121212] border-l border-[#282828] z-40 shadow-2xl flex flex-col transform transition-transform duration-300 translate-x-0 pb-24 pt-16">
+    <div 
+      ref={focusRef}
+      className="fixed inset-y-0 right-0 w-80 bg-[#121212] border-l border-[#282828] z-40 shadow-2xl flex flex-col transform transition-transform duration-300 translate-x-0 pb-24 pt-16"
+      role="dialog"
+      aria-label="Queue"
+    >
       <div className="flex items-center justify-between p-4 border-b border-[#282828]">
         <h2 className="text-white font-bold">Queue</h2>
-        <button onClick={onClose} className="text-[#b3b3b3] hover:text-white transition-colors">
+        <button onClick={onClose} aria-label="Close queue" className="text-[#b3b3b3] hover:text-white transition-colors">
           <X className="w-5 h-5" />
         </button>
       </div>
@@ -108,7 +116,8 @@ export default function QueuePanel({ isOpen, onClose }: QueuePanelProps) {
                   </div>
                   <button 
                     onClick={() => removeFromQueue(queueIndex + 1 + i)}
-                    className="text-[#b3b3b3] hover:text-white opacity-0 group-hover:opacity-100 transition-opacity p-1 shrink-0"
+                    aria-label={`Remove ${track.title} from queue`}
+                    className="text-[#b3b3b3] hover:text-white opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity p-1 shrink-0"
                   >
                     <X className="w-4 h-4" />
                   </button>

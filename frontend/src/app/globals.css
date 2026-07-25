@@ -42,3 +42,8 @@ body {
   background: rgba(255, 255, 255, 0.5);
 }
 
+/* Global Focus Rings for Accessibility */
+*:focus-visible {
+  outline: 2px solid var(--spotify-green) !important;
+  outline-offset: 2px !important;
+}

@@ -7,10 +7,10 @@ import { getArtistTracks } from "@/lib/api";
 import { mapSongToPlayerTrack, mapTrackToPlayerTrack } from "@/lib/api";
 import { usePlayer, PlayerTrack } from "@/store/playerStore";
 import TrackRow from "@/components/TrackRow";
-import { MockTrack } from "@/lib/mockData";
+import { TrackItem } from "@/types";
 
-// Convert PlayerTrack back to MockTrack for TrackRow compatibility
-function playerTrackToMockTrack(t: PlayerTrack): MockTrack {
+// Convert PlayerTrack back to TrackItem for TrackRow compatibility
+function playerTrackToTrackItem(t: PlayerTrack): TrackItem {
   return {
     id: t.id,
     spotifyId: t.spotifyId || "",
@@ -29,7 +29,7 @@ export default function ArtistPage({ params }: { params: Promise<{ name: string 
   const resolvedParams = use(params);
   const artistName = decodeURIComponent(resolvedParams.name);
   
-  const [tracks, setTracks] = useState<MockTrack[]>([]);
+  const [tracks, setTracks] = useState<TrackItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   const { playQueue, isPlaying, currentTrack, pause, togglePlay } = usePlayer();
@@ -40,7 +40,7 @@ export default function ArtistPage({ params }: { params: Promise<{ name: string 
         const data = await getArtistTracks(artistName);
         const mappedTracks = data.map((t: any) => {
           const pt = t.spotifyTrackId ? mapSongToPlayerTrack(t) : mapTrackToPlayerTrack(t);
-          return playerTrackToMockTrack(pt);
+          return playerTrackToTrackItem(pt);
         });
         setTracks(mappedTracks);
       } catch (error) {

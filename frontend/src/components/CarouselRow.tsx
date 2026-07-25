@@ -1,9 +1,9 @@
 import Card from "./Card";
-import { MockMediaItem } from "@/lib/mockData";
+import { MediaItem } from "@/types";
 
 interface CarouselRowProps {
   title: string;
-  items: MockMediaItem[];
+  items: MediaItem[];
   seeAllHref?: string;
 }
 
@@ -26,9 +26,11 @@ export default function CarouselRow({
         </a>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+      <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 md:pb-0 md:grid md:grid-cols-4 lg:grid-cols-5 md:overflow-visible" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
         {items.map((item) => (
-          <Card key={item.id} item={item} />
+          <div key={item.id} className="snap-start shrink-0 w-[42vw] sm:w-[30vw] md:w-auto">
+            <Card item={item} />
+          </div>
         ))}
       </div>
     </section>

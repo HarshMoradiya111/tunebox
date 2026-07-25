@@ -1,8 +1,8 @@
 import Image from "next/image";
-import { MockGenre } from "@/lib/mockData";
+import { Genre } from "@/types";
 
 interface GenreCardProps {
-  genre: MockGenre;
+  genre: Genre;
 }
 
 export default function GenreCard({ genre }: GenreCardProps) {

@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { fetchCategories, ApiCategory, searchMusic, ApiSearchResult, searchLibrary } from "@/lib/api";
-import { MOCK_GENRES, MockGenre } from "@/lib/mockData";
+import { Genre } from "@/types";
 import { PlayerTrack } from "@/store/playerStore";
 import TrackRow from "@/components/TrackRow";
 
@@ -106,7 +106,7 @@ export default async function SearchPage({
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-[#555]">No Art</div>
                       )}
-                      <div className="absolute bottom-2 right-2 w-12 h-12 bg-[#1ed760] rounded-full flex items-center justify-center shadow-xl opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 hover:scale-105 hover:bg-[#3be477]">
+                      <div className="absolute bottom-2 right-2 w-12 h-12 bg-[#1ed760] rounded-full flex items-center justify-center shadow-xl md:opacity-0 md:translate-y-2 md:group-hover:opacity-100 md:group-hover:translate-y-0 transition-all duration-300 hover:scale-105 hover:bg-[#3be477]">
                         <svg role="img" height="24" width="24" aria-hidden="true" viewBox="0 0 24 24" fill="black"><path d="m7.05 3.606 13.49 7.788a.7.7 0 0 1 0 1.212L7.05 20.394A.7.7 0 0 1 6 19.788V4.212a.7.7 0 0 1 1.05-.606z"></path></svg>
                       </div>
                     </div>
@@ -124,7 +124,7 @@ export default async function SearchPage({
     );
   }
 
-  let genres: MockGenre[];
+  let genres: Genre[] = [];
 
   try {
     const categories: ApiCategory[] = await fetchCategories();
@@ -132,10 +132,9 @@ export default async function SearchPage({
       id: cat.id,
       name: cat.name,
       color: GRADIENT_COLORS[i % GRADIENT_COLORS.length],
-      image: cat.icon || `https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300&h=300&fit=crop`,
     }));
-  } catch {
-    genres = MOCK_GENRES;
+  } catch (e) {
+    console.error("Failed to fetch browse categories:", e);
   }
 
   return (
@@ -151,14 +150,6 @@ export default async function SearchPage({
             className={`aspect-square p-4 rounded-xl overflow-hidden relative font-bold text-2xl text-white cursor-pointer hover:scale-[1.03] transition-all duration-300 shadow-md bg-gradient-to-br ${genre.color}`}
           >
             <span className="relative z-10 drop-shadow-md">{genre.name}</span>
-            <div className="absolute -bottom-2 -right-3 w-28 h-28 rotate-[25deg] shadow-2xl rounded-md overflow-hidden">
-              <Image
-                src={genre.image}
-                alt={genre.name}
-                fill
-                className="object-cover"
-              />
-            </div>
           </div>
         ))}
       </div>

@@ -2,24 +2,23 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Play, Pause, Heart, MoreHorizontal, ListPlus, Trash2, Pencil, Check, X, PlaySquare } from "lucide-react";
-import { useState, useEffect } from "react";
-import { MockTrack } from "@/lib/mockData";
+import { Play, Pause, Heart, MoreHorizontal, ListPlus, Trash2, Pencil, Check, X, PlaySquare, Clock } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { TrackItem } from "@/types";
 import { usePlayer, PlayerTrack } from "@/store/playerStore";
 import { deleteUploadedTrack, updateUploadedTrack } from "@/lib/api";
 import { useRouter } from "next/navigation";
 
 interface TrackRowProps {
-  track: MockTrack;
+  track: TrackItem;
   index: number;
-  /** All tracks in the current list (for queue) */
-  allTracks?: MockTrack[];
+  allTracks?: TrackItem[];
   selectable?: boolean;
   isSelected?: boolean;
   onToggleSelect?: () => void;
 }
 
-function mockToPlayerTrack(t: MockTrack): PlayerTrack {
+function trackItemToPlayerTrack(t: TrackItem): PlayerTrack {
   return {
     id: t.id,
     spotifyId: t.spotifyId,
@@ -90,9 +89,9 @@ export default function TrackRow({ track, index, allTracks, selectable, isSelect
     if (isCurrentTrack) {
       togglePlay();
     } else if (allTracks && allTracks.length > 0) {
-      playQueue(allTracks.map(mockToPlayerTrack), index);
+      playQueue(allTracks.map(trackItemToPlayerTrack), index);
     } else {
-      playTrack(mockToPlayerTrack(track));
+      playTrack(trackItemToPlayerTrack(track));
     }
   };
 
@@ -150,8 +149,17 @@ export default function TrackRow({ track, index, allTracks, selectable, isSelect
 
   return (
     <div
-      className={`grid grid-cols-[16px_4fr_3fr_2fr_minmax(100px,1fr)] items-center gap-4 px-4 py-2.5 rounded-md hover:bg-[#ffffff10] text-[#b3b3b3] text-sm group transition-colors select-none ${isEditing ? "bg-[#ffffff10]" : "cursor-pointer"}`}
+      role="button"
+      tabIndex={0}
+      aria-label={`Play ${displayTitle}`}
+      className={`grid grid-cols-[16px_1fr_auto] md:grid-cols-[16px_4fr_3fr_2fr_minmax(100px,1fr)] items-center gap-4 px-2 md:px-4 py-2.5 rounded-md hover:bg-[#ffffff10] text-[#b3b3b3] text-sm group transition-colors select-none outline-none focus-visible:ring-2 focus-visible:ring-[#1db954] focus-visible:ring-inset ${isEditing ? "bg-[#ffffff10]" : "cursor-pointer"}`}
       onDoubleClick={handlePlay}
+      onKeyDown={(e) => {
+        if ((e.key === "Enter" || e.key === " ") && e.target === e.currentTarget) {
+          e.preventDefault();
+          handlePlay();
+        }
+      }}
     >
       {/* Column 1: Index Number / Play Icon */}
       <div className="flex items-center justify-center font-medium">
@@ -169,16 +177,17 @@ export default function TrackRow({ track, index, allTracks, selectable, isSelect
         ) : (
           <button
             onClick={(e) => { e.stopPropagation(); handlePlay(); }}
-            className="text-white hover:scale-110 transition-transform"
+            aria-label={isActive ? "Pause" : "Play"}
+            className="text-white hover:scale-110 transition-transform p-1 md:p-0 focus-visible:opacity-100"
           >
             {isActive ? (
             <Pause className="w-4 h-4 fill-current text-[#1db954]" />
           ) : (
             <>
-              <span className={`group-hover:hidden ${isCurrentTrack ? "text-[#1db954]" : ""}`}>
+              <span className={`md:group-hover:hidden ${isCurrentTrack ? "text-[#1db954]" : ""}`}>
                 {index + 1}
               </span>
-              <Play className="w-4 h-4 fill-current hidden group-hover:block text-white" />
+              <Play className="w-4 h-4 fill-current hidden md:group-hover:block text-white" />
             </>
           )}
         </button>
@@ -206,6 +215,7 @@ export default function TrackRow({ track, index, allTracks, selectable, isSelect
                 value={editTitle}
                 onChange={(e) => setEditTitle(e.target.value)}
                 onClick={(e) => e.stopPropagation()}
+                aria-label="Edit title"
                 className="bg-[#282828] text-white text-sm px-2 py-0.5 rounded outline-none focus:ring-1 focus:ring-[#1db954] mb-1 w-full"
                 placeholder="Title"
               />
@@ -214,6 +224,7 @@ export default function TrackRow({ track, index, allTracks, selectable, isSelect
                 value={editArtist}
                 onChange={(e) => setEditArtist(e.target.value)}
                 onClick={(e) => e.stopPropagation()}
+                aria-label="Edit artist"
                 className="bg-[#282828] text-white text-xs px-2 py-0.5 rounded outline-none focus:ring-1 focus:ring-[#1db954] w-full"
                 placeholder="Artist"
               />
@@ -247,6 +258,7 @@ export default function TrackRow({ track, index, allTracks, selectable, isSelect
             value={editAlbum}
             onChange={(e) => setEditAlbum(e.target.value)}
             onClick={(e) => e.stopPropagation()}
+            aria-label="Edit album"
             className="bg-[#282828] text-white text-sm px-2 py-0.5 rounded outline-none focus:ring-1 focus:ring-[#1db954] w-full"
             placeholder="Album"
           />
@@ -280,11 +292,13 @@ export default function TrackRow({ track, index, allTracks, selectable, isSelect
               value={editTags}
               onChange={(e) => setEditTags(e.target.value)}
               onClick={(e) => e.stopPropagation()}
+              aria-label="Edit tags"
               className="bg-[#282828] text-white text-xs px-2 py-1 rounded outline-none focus:ring-1 focus:ring-[#1db954] w-24 mr-2"
               placeholder="Tags (comma-separated)"
             />
             <button
               onClick={handleSaveEdit}
+              aria-label="Save changes"
               className="text-[#1db954] hover:scale-110 transition-transform"
               title="Save"
             >
@@ -292,6 +306,7 @@ export default function TrackRow({ track, index, allTracks, selectable, isSelect
             </button>
             <button
               onClick={handleCancelEdit}
+              aria-label="Cancel editing"
               className="text-red-500 hover:scale-110 transition-transform"
               title="Cancel"
             >
@@ -304,14 +319,16 @@ export default function TrackRow({ track, index, allTracks, selectable, isSelect
               <>
                 <button
                   onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
-                  className="opacity-0 group-hover:opacity-100 text-[#b3b3b3] hover:text-white transition-opacity"
+                  aria-label="Edit metadata"
+                  className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-[#b3b3b3] hover:text-white transition-opacity"
                   title="Edit metadata"
                 >
                   <Pencil className="w-4 h-4" />
                 </button>
                 <button
                   onClick={handleDelete}
-                  className="opacity-0 group-hover:opacity-100 text-[#b3b3b3] hover:text-red-500 transition-opacity"
+                  aria-label="Delete local track"
+                  className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-[#b3b3b3] hover:text-red-500 transition-opacity"
                   title="Delete local track"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -320,7 +337,8 @@ export default function TrackRow({ track, index, allTracks, selectable, isSelect
             )}
             <button
               onClick={handleToggleLike}
-              className={`opacity-0 group-hover:opacity-100 transition-opacity ${
+              aria-label={isLiked ? "Remove from liked songs" : "Save to your liked songs"}
+              className={`opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity ${
                 isLiked ? "opacity-100 text-[#1db954]" : "text-[#b3b3b3] hover:text-white"
               }`}
             >
@@ -330,9 +348,10 @@ export default function TrackRow({ track, index, allTracks, selectable, isSelect
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                playNext(mockToPlayerTrack(track));
+                playNext(trackItemToPlayerTrack(track));
               }}
-              className="opacity-0 group-hover:opacity-100 text-[#b3b3b3] hover:text-white transition-opacity"
+              aria-label="Play next"
+              className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-[#b3b3b3] hover:text-white transition-opacity"
               title="Play next"
             >
               <PlaySquare className="w-4 h-4" />
@@ -340,14 +359,15 @@ export default function TrackRow({ track, index, allTracks, selectable, isSelect
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                addToQueue(mockToPlayerTrack(track));
+                addToQueue(trackItemToPlayerTrack(track));
               }}
-              className="opacity-0 group-hover:opacity-100 text-[#b3b3b3] hover:text-white transition-opacity"
+              aria-label="Add to queue"
+              className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-[#b3b3b3] hover:text-white transition-opacity"
               title="Add to queue"
             >
               <ListPlus className="w-4 h-4" />
             </button>
-            <button onClick={(e) => e.stopPropagation()} className="opacity-0 group-hover:opacity-100 text-[#b3b3b3] hover:text-white transition-opacity">
+            <button onClick={(e) => e.stopPropagation()} aria-label="More options" className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-[#b3b3b3] hover:text-white transition-opacity">
               <MoreHorizontal className="w-4 h-4" />
             </button>
           </>

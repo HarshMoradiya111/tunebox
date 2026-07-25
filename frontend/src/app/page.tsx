@@ -9,19 +9,15 @@ import {
   fetchMostPlayed,
   fetchRecentlyAdded,
   getArtists,
+  fetchQuickAccess,
   ApiFeaturedPlaylist,
   ApiNewRelease,
 } from "@/lib/api";
-import {
-  MOCK_FEATURED_PLAYLISTS,
-  MOCK_NEW_RELEASES,
-  MOCK_RECENT_GRID,
-  MockMediaItem,
-} from "@/lib/mockData";
+import { MediaItem } from "@/types";
 import { PlayerTrack } from "@/store/playerStore";
 
-// Convert API data to the MockMediaItem shape the Card component expects
-function playlistToMediaItem(p: ApiFeaturedPlaylist): MockMediaItem {
+// Convert API data to the MediaItem shape the Card component expects
+function playlistToMediaItem(p: ApiFeaturedPlaylist): MediaItem {
   return {
     id: p.spotifyId,
     title: p.name,
@@ -31,7 +27,7 @@ function playlistToMediaItem(p: ApiFeaturedPlaylist): MockMediaItem {
   };
 }
 
-function releaseToMediaItem(r: ApiNewRelease): MockMediaItem {
+function releaseToMediaItem(r: ApiNewRelease): MediaItem {
   return {
     id: r.spotifyId,
     title: r.name,
@@ -41,7 +37,7 @@ function releaseToMediaItem(r: ApiNewRelease): MockMediaItem {
   };
 }
 
-function playerTrackToMediaItem(t: PlayerTrack): MockMediaItem {
+function playerTrackToMediaItem(t: PlayerTrack): MediaItem {
   return {
     id: t.spotifyId || t.id,
     title: t.title,
@@ -51,7 +47,7 @@ function playerTrackToMediaItem(t: PlayerTrack): MockMediaItem {
   };
 }
 
-function artistToMediaItem(a: { name: string; trackCount: number; coverImage: string }): MockMediaItem {
+function artistToMediaItem(a: { name: string; trackCount: number; coverImage: string }): MediaItem {
   return {
     id: a.name,
     title: a.name,
@@ -64,25 +60,27 @@ function artistToMediaItem(a: { name: string; trackCount: number; coverImage: st
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  let featuredItems: MockMediaItem[];
-  let newReleaseItems: MockMediaItem[];
-  let recentlyPlayedItems: MockMediaItem[] = [];
-  let mostPlayedItems: MockMediaItem[] = [];
-  let recentlyAddedItems: MockMediaItem[] = [];
-  let artistItems: MockMediaItem[] = [];
+  let featuredItems: MediaItem[] = [];
+  let newReleaseItems: MediaItem[] = [];
+  let recentlyPlayedItems: MediaItem[] = [];
+  let mostPlayedItems: MediaItem[] = [];
+  let recentlyAddedItems: MediaItem[] = [];
+  let artistItems: MediaItem[] = [];
+  let quickAccessItems: MediaItem[] = [];
 
   try {
-    const [featured, releases, recent, mostPlayed, recentlyAdded, artists] = await Promise.all([
-      fetchFeaturedPlaylists(),
-      fetchNewReleases(),
+    const [featured, releases, recent, mostPlayed, recentlyAdded, artists, quickAccess] = await Promise.all([
+      fetchFeaturedPlaylists().catch((e) => { console.error("Featured playlists error:", e); return []; }),
+      fetchNewReleases().catch((e) => { console.error("New releases error:", e); return []; }),
       fetchRecentlyPlayed().catch(() => []),
       fetchMostPlayed().catch(() => []),
       fetchRecentlyAdded().catch(() => []),
       getArtists().catch(() => []),
+      fetchQuickAccess().catch(() => []),
     ]);
     featuredItems = featured.map(playlistToMediaItem);
     newReleaseItems = releases.map(releaseToMediaItem);
-    
+
     if (recent && Array.isArray(recent)) {
       recentlyPlayedItems = recent.map(playerTrackToMediaItem);
     }
@@ -95,10 +93,11 @@ export default async function Home() {
     if (artists && Array.isArray(artists)) {
       artistItems = artists.map(artistToMediaItem);
     }
-  } catch {
-    // Fallback to mock data when backend is not running
-    featuredItems = MOCK_FEATURED_PLAYLISTS;
-    newReleaseItems = MOCK_NEW_RELEASES;
+    if (quickAccess && Array.isArray(quickAccess)) {
+      quickAccessItems = quickAccess;
+    }
+  } catch (e) {
+    console.error("Homepage data fetch error:", e);
   }
 
   const getGreeting = () => {
@@ -108,44 +107,45 @@ export default async function Home() {
     return "Good evening";
   };
 
-  // Recent grid uses mock data for now (would need user-specific data / auth)
-  const recentGrid = MOCK_RECENT_GRID;
-
   return (
     <div className="flex flex-col gap-8 select-none">
-      {/* Dynamic Greeting & Quick 2x3 Grid */}
+      {/* Dynamic Greeting & Quick Access Grid */}
       <section className="flex flex-col gap-4">
         <h1 className="text-3xl font-bold text-white tracking-tight">
           {getGreeting()}
         </h1>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-          {recentGrid.map((item) => (
-            <Link
-              key={item.id}
-              href={`/playlist/${item.id}`}
-              className="flex items-center gap-3 bg-[#ffffff10] hover:bg-[#ffffff20] transition-colors rounded-md overflow-hidden group cursor-pointer pr-4"
-            >
-              <div className="relative w-16 h-16 shrink-0 bg-[#242424]">
-                {item.image && (
-                  <Image
-                    src={item.image}
-                    alt={item.title}
-                    fill
-                    sizes="64px"
-                    className="object-cover"
-                  />
-                )}
-              </div>
-              <span className="font-bold text-sm text-white truncate flex-1">
-                {item.title}
-              </span>
-              <button className="w-10 h-10 rounded-full bg-[#1db954] hover:scale-105 flex items-center justify-center text-black shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-200 shrink-0">
-                <Play className="w-4 h-4 fill-current translate-x-0.5" />
-              </button>
-            </Link>
-          ))}
-        </div>
+        {quickAccessItems.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            {quickAccessItems.map((item) => (
+              <Link
+                key={item.id}
+                href={item.type === "album" ? `/album/${encodeURIComponent(item.id)}` : `/playlist/${item.id}`}
+                className="flex items-center gap-3 bg-[#ffffff10] hover:bg-[#ffffff20] transition-colors rounded-md overflow-hidden group cursor-pointer pr-4"
+              >
+                <div className="relative w-16 h-16 shrink-0 bg-[#242424]">
+                  {item.image && (
+                    <Image
+                      src={item.image}
+                      alt={item.title}
+                      fill
+                      sizes="64px"
+                      className="object-cover"
+                    />
+                  )}
+                </div>
+                <span className="font-bold text-sm text-white truncate flex-1">
+                  {item.title}
+                </span>
+                <button className="w-10 h-10 rounded-full bg-[#1db954] hover:scale-105 flex items-center justify-center text-black shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-200 shrink-0">
+                  <Play className="w-4 h-4 fill-current translate-x-0.5" />
+                </button>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <p className="text-[#b3b3b3] text-sm">Upload some tracks to see your library here.</p>
+        )}
       </section>
 
       {/* Recently Played Row (if any) */}
@@ -157,7 +157,7 @@ export default async function Home() {
       {mostPlayedItems.length > 0 && (
         <CarouselRow title="Most Played (Made For You)" items={mostPlayedItems} />
       )}
-      
+
       {recentlyAddedItems.length > 0 && (
         <CarouselRow title="Recently Added" items={recentlyAddedItems} />
       )}
@@ -167,10 +167,14 @@ export default async function Home() {
       )}
 
       {/* Featured Playlists Row */}
-      <CarouselRow title="Featured Playlists" items={featuredItems} />
+      {featuredItems.length > 0 && (
+        <CarouselRow title="Featured Playlists" items={featuredItems} />
+      )}
 
       {/* New Releases Row */}
-      <CarouselRow title="New Releases" items={newReleaseItems} />
+      {newReleaseItems.length > 0 && (
+        <CarouselRow title="New Releases" items={newReleaseItems} />
+      )}
     </div>
   );
 }

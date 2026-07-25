@@ -25,6 +25,7 @@ import { usePlayer } from "@/store/playerStore";
 import { useState, useEffect } from "react";
 import QueuePanel from "./QueuePanel";
 import NowPlayingView from "./NowPlayingView";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 
 function formatTime(seconds: number): string {
   if (!seconds || isNaN(seconds)) return "0:00";
@@ -68,6 +69,7 @@ export default function PlayerBar() {
   const [sleepTimerEndTime, setSleepTimerEndTime] = useState<number | null>(null);
   const [sleepTimeRemaining, setSleepTimeRemaining] = useState<number | null>(null);
   const [isSleepMenuOpen, setIsSleepMenuOpen] = useState(false);
+  const sleepFocusRef = useFocusTrap(isSleepMenuOpen, () => setIsSleepMenuOpen(false));
   
   useEffect(() => {
     setIsLiked(currentTrack?.isLiked || false);
@@ -176,14 +178,37 @@ export default function PlayerBar() {
         : Volume2;
 
   return (
-    <footer className="h-24 bg-black border-t border-[#282828] px-4 flex items-center justify-between z-50 select-none">
-      {/* Left: Now Playing Track Info */}
-      <div className="flex items-center gap-3 w-1/4 min-w-[180px]">
+    <footer className="h-16 md:h-[90px] bg-black border-t border-[#282828] px-2 md:px-4 flex items-center justify-between z-50 select-none pb-[env(safe-area-inset-bottom)]">
+      {/* Screen Reader Announcements */}
+      <div className="sr-only" aria-live="polite">
+        {currentTrack ? `Now playing: ${currentTrack.title} by ${currentTrack.artist}` : 'No track selected'}
+      </div>
+
+      {/* Left / Mobile Mini Player: Now Playing Track Info */}
+      <div 
+        role="button"
+        tabIndex={0}
+        aria-label="Open now playing view"
+        className="flex items-center gap-2 md:gap-3 flex-1 md:w-1/4 md:min-w-[180px] h-full outline-none focus-visible:ring-2 focus-visible:ring-[#1db954] focus-visible:ring-inset"
+        onClick={() => {
+          // On mobile, tap anywhere opens the NowPlayingView
+          if (window.innerWidth < 768) setIsNowPlayingOpen(true);
+        }}
+        onKeyDown={(e) => {
+          if ((e.key === "Enter" || e.key === " ") && window.innerWidth < 768) {
+            e.preventDefault();
+            setIsNowPlayingOpen(true);
+          }
+        }}
+      >
         {currentTrack ? (
           <>
             <div 
-              className="relative w-14 h-14 rounded-md overflow-hidden bg-[#282828] shrink-0 cursor-pointer group"
-              onClick={() => setIsNowPlayingOpen(true)}
+              className="relative w-12 h-12 md:w-14 md:h-14 rounded-md overflow-hidden bg-[#282828] shrink-0 cursor-pointer group"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsNowPlayingOpen(true);
+              }}
             >
               <Image
                 src={currentTrack.albumArt || "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300&h=300&fit=crop"}
@@ -195,21 +220,37 @@ export default function PlayerBar() {
                 <Maximize2 className="w-5 h-5 text-white" />
               </div>
             </div>
-            <div className="flex flex-col min-w-0">
+            <div className="flex flex-col min-w-0 flex-1">
               <span className="text-white text-sm font-medium hover:underline truncate cursor-pointer">
                 {currentTrack.title}
               </span>
-              <Link href={`/artist/${encodeURIComponent(currentTrack.artist)}`} className="text-[#b3b3b3] text-xs hover:underline truncate cursor-pointer">
+              <Link href={`/artist/${encodeURIComponent(currentTrack.artist)}`} className="text-[#b3b3b3] text-xs hover:underline truncate cursor-pointer" onClick={(e) => e.stopPropagation()}>
                 {currentTrack.artist}
               </Link>
             </div>
             <button
-              onClick={handleToggleLike}
-              className={`p-1.5 rounded-full hover:scale-105 transition-transform ${
+              onClick={(e) => { e.stopPropagation(); handleToggleLike(); }}
+              aria-label={isLiked ? "Remove from liked songs" : "Save to your liked songs"}
+              className={`p-3 md:p-1.5 rounded-full hover:scale-105 transition-transform shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center ${
                 isLiked ? "text-[#1db954]" : "text-[#b3b3b3] hover:text-white"
               }`}
             >
-              <Heart className={`w-4 h-4 ${isLiked ? "fill-current" : ""}`} />
+              <Heart className={`w-5 h-5 md:w-4 md:h-4 ${isLiked ? "fill-current" : ""}`} />
+            </button>
+            {/* Mobile Play/Pause Button */}
+            <button
+              onClick={(e) => { e.stopPropagation(); togglePlay(); }}
+              disabled={!currentTrack}
+              aria-label={isPlaying ? "Pause" : "Play"}
+              className="md:hidden shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center text-white disabled:opacity-50"
+            >
+              {isLoading ? (
+                <Loader2 className="w-6 h-6 animate-spin" aria-hidden="true" />
+              ) : isPlaying ? (
+                <Pause className="w-6 h-6 fill-current" aria-hidden="true" />
+              ) : (
+                <Play className="w-6 h-6 fill-current" aria-hidden="true" />
+              )}
             </button>
           </>
         ) : (
@@ -220,12 +261,13 @@ export default function PlayerBar() {
         )}
       </div>
 
-      {/* Center: Playback Controls & Seek Bar */}
-      <div className="flex flex-col items-center gap-2 w-2/4 max-w-[600px]">
+      {/* Center: Playback Controls & Seek Bar (Hidden on Mobile) */}
+      <div className="hidden md:flex flex-col items-center gap-2 w-2/4 max-w-[600px]">
         {/* Buttons */}
         <div className="flex items-center gap-4 text-[#b3b3b3]">
           <button
             onClick={toggleShuffle}
+            aria-label={isShuffled ? "Disable shuffle" : "Enable shuffle"}
             className={`transition-colors p-1 relative ${
               isShuffled ? "text-[#1db954]" : "text-[#b3b3b3] hover:text-white"
             }`}
@@ -235,6 +277,7 @@ export default function PlayerBar() {
           </button>
           <button
             onClick={prevTrack}
+            aria-label="Previous track"
             className="text-[#b3b3b3] hover:text-white transition-colors p-1"
           >
             <SkipBack className="w-5 h-5 fill-current" />
@@ -242,24 +285,27 @@ export default function PlayerBar() {
           <button
             onClick={togglePlay}
             disabled={!currentTrack}
+            aria-label={isPlaying ? "Pause" : "Play"}
             className="w-8 h-8 rounded-full bg-white hover:scale-105 text-black flex items-center justify-center transition-all disabled:opacity-50"
           >
             {isLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
             ) : isPlaying ? (
-              <Pause className="w-4 h-4 fill-current" />
+              <Pause className="w-4 h-4 fill-current" aria-hidden="true" />
             ) : (
-              <Play className="w-4 h-4 fill-current translate-x-0.5" />
+              <Play className="w-4 h-4 fill-current translate-x-0.5" aria-hidden="true" />
             )}
           </button>
           <button
             onClick={nextTrack}
+            aria-label="Next track"
             className="text-[#b3b3b3] hover:text-white transition-colors p-1"
           >
             <SkipForward className="w-5 h-5 fill-current" />
           </button>
           <button
             onClick={cycleRepeat}
+            aria-label={`Repeat mode: ${repeatMode}`}
             className={`transition-colors p-1 relative ${
               repeatMode !== "off" ? "text-[#1db954]" : "text-[#b3b3b3] hover:text-white"
             }`}
@@ -273,13 +319,28 @@ export default function PlayerBar() {
         <div className="w-full flex items-center gap-2 text-xs text-[#b3b3b3]">
           <span className="w-10 text-right tabular-nums">{formatTime(currentTime)}</span>
           <div
-            className="flex-1 h-1 bg-[#4d4d4d] hover:h-1.5 rounded-full overflow-hidden relative cursor-pointer group"
+            role="slider"
+            tabIndex={0}
+            aria-label="Seek time"
+            aria-valuemin={0}
+            aria-valuemax={duration || 100}
+            aria-valuenow={currentTime}
+            className="flex-1 h-1 bg-[#4d4d4d] hover:h-1.5 rounded-full overflow-hidden relative cursor-pointer group focus-visible:ring-2 focus-visible:ring-[#1db954]"
             onMouseDown={() => setIsDraggingSeek(true)}
             onMouseUp={() => setIsDraggingSeek(false)}
             onClick={(e) => {
               const rect = e.currentTarget.getBoundingClientRect();
               const clickX = e.clientX - rect.left;
               seekPercent((clickX / rect.width) * 100);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowRight") {
+                seekPercent(Math.min(100, progress + 5));
+                e.stopPropagation();
+              } else if (e.key === "ArrowLeft") {
+                seekPercent(Math.max(0, progress - 5));
+                e.stopPropagation();
+              }
             }}
           >
             <div
@@ -294,13 +355,15 @@ export default function PlayerBar() {
         </div>
       </div>
 
-      {/* Right: Volume & Utilities */}
-      <div className="hidden sm:flex items-center justify-end gap-3 w-1/4 text-[#b3b3b3]">
+      {/* Right: Volume & Utilities (Hidden on Mobile) */}
+      <div className="hidden md:flex items-center justify-end gap-3 w-1/4 text-[#b3b3b3]">
         
         {/* Sleep Timer */}
         <div className="relative">
           <button 
             onClick={() => setIsSleepMenuOpen(!isSleepMenuOpen)}
+            aria-label="Sleep timer"
+            aria-expanded={isSleepMenuOpen}
             className={`transition-colors p-1 relative ${sleepTimerEndTime ? "text-[#1db954]" : "hover:text-white"}`}
           >
             <Timer className="w-4 h-4" />
@@ -312,15 +375,15 @@ export default function PlayerBar() {
           </button>
           
           {isSleepMenuOpen && (
-            <div className="absolute bottom-10 right-0 w-40 bg-[#282828] rounded-md shadow-2xl py-1 text-sm overflow-hidden z-50">
+            <div ref={sleepFocusRef} className="absolute bottom-10 right-0 w-40 bg-[#282828] rounded-md shadow-2xl py-1 text-sm overflow-hidden z-50">
               <div className="px-3 py-2 text-xs font-bold text-[#b3b3b3] uppercase tracking-wider border-b border-[#3e3e3e]">Sleep Timer</div>
               {[15, 30, 45, 60].map(m => (
-                <button key={m} onClick={() => handleSetSleepTimer(m as number)} className="w-full text-left px-3 py-2 hover:bg-[#3e3e3e] text-white">
+                <button key={m} onClick={() => handleSetSleepTimer(m as number)} className="w-full text-left px-3 py-2 hover:bg-[#3e3e3e] text-white focus-visible:bg-[#3e3e3e]">
                   {m} Minutes
                 </button>
               ))}
-              <button onClick={() => handleSetSleepTimer('end')} className="w-full text-left px-3 py-2 hover:bg-[#3e3e3e] text-white">End of track</button>
-              <button onClick={() => handleSetSleepTimer(null)} className="w-full text-left px-3 py-2 hover:bg-[#3e3e3e] text-red-400 border-t border-[#3e3e3e]">Turn off timer</button>
+              <button onClick={() => handleSetSleepTimer('end')} className="w-full text-left px-3 py-2 hover:bg-[#3e3e3e] text-white focus-visible:bg-[#3e3e3e]">End of track</button>
+              <button onClick={() => handleSetSleepTimer(null)} className="w-full text-left px-3 py-2 hover:bg-[#3e3e3e] text-red-400 border-t border-[#3e3e3e] focus-visible:bg-[#3e3e3e]">Turn off timer</button>
             </div>
           )}
         </div>
@@ -328,6 +391,8 @@ export default function PlayerBar() {
         {/* Queue */}
         <button 
           onClick={() => setIsQueueOpen(!isQueueOpen)}
+          aria-label="Queue"
+          aria-expanded={isQueueOpen}
           className={`transition-colors p-1 ${isQueueOpen ? "text-[#1db954]" : "hover:text-white"}`}
         >
           <ListMusic className="w-4 h-4" />
@@ -338,12 +403,15 @@ export default function PlayerBar() {
           onClick={toggleNormalizeVolume}
           className={`transition-colors p-1 ${normalizeVolume ? "text-[#1db954]" : "hover:text-white"}`}
           title="Normalize Volume"
+          aria-label={normalizeVolume ? "Disable volume normalization" : "Enable volume normalization"}
+          aria-pressed={normalizeVolume}
         >
           <Ear className="w-4 h-4" />
         </button>
         <div className="flex items-center gap-2 w-28">
           <button
             onClick={toggleMute}
+            aria-label={isMuted ? "Unmute" : "Mute"}
             className="hover:text-white transition-colors p-1"
           >
             <VolumeIcon
@@ -356,6 +424,7 @@ export default function PlayerBar() {
             type="range"
             min="0"
             max="100"
+            aria-label="Volume"
             value={effectiveVolume}
             onChange={(e) => setVolume(Number(e.target.value))}
             className="w-full h-1 accent-[#1db954] cursor-pointer"

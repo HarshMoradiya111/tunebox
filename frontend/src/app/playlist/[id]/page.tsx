@@ -3,7 +3,6 @@ import { Clock } from "lucide-react";
 import TrackRow from "@/components/TrackRow";
 import PlaylistActionBar from "./PlaylistActionBar";
 import { fetchPlaylist, ApiPlaylistDetail } from "@/lib/api";
-import { MOCK_TRACKS, MockTrack } from "@/lib/mockData";
 import ImportPoller from "./ImportPoller";
 
 interface PlaylistPageProps {
@@ -19,11 +18,11 @@ export default async function PlaylistPage({ params }: PlaylistPageProps) {
     .join(" ");
 
   let coverImage =
-    "https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=500&h=500&fit=crop";
-  let description = "Your favorite hits and top releases updated daily.";
+    "https://placehold.co/500x500/222/FFF?text=Playlist";
+  let description = "";
   let owner = "TuneBox";
-  let trackCount = MOCK_TRACKS.length;
-  let tracks: MockTrack[] = MOCK_TRACKS;
+  let trackCount = 0;
+  let tracks: any[] = [];
   let importStatus = "";
 
   // Try to fetch real data from backend
@@ -36,7 +35,7 @@ export default async function PlaylistPage({ params }: PlaylistPageProps) {
     trackCount = playlist.totalTracks || playlist.tracks.length;
     importStatus = playlist.importStatus || "";
 
-    // Map API tracks to MockTrack shape for the TrackRow component
+    // Map API tracks to shape for the TrackRow component
     if (playlist.tracks && playlist.tracks.length > 0) {
       tracks = playlist.tracks.map((t: any) => ({
         id: t._id || t.spotifyId,
@@ -50,8 +49,8 @@ export default async function PlaylistPage({ params }: PlaylistPageProps) {
         streamUrl: t.streamUrl,
       }));
     }
-  } catch {
-    // Backend not running — use mock data (already set above)
+  } catch (e) {
+    console.error("Failed to fetch playlist:", e);
   }
 
   const totalDuration = tracks.reduce((sum, t) => sum + t.duration, 0);

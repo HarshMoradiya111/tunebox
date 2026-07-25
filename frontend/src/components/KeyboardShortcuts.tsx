@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 
 export default function KeyboardShortcuts() {
   const [isOpen, setIsOpen] = useState(false);
+  const focusRef = useFocusTrap(isOpen, () => setIsOpen(false));
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -18,8 +20,6 @@ export default function KeyboardShortcuts() {
 
       if (e.key === "?") {
         setIsOpen((prev) => !prev);
-      } else if (e.key === "Escape" && isOpen) {
-        setIsOpen(false);
       }
     };
 
@@ -30,12 +30,20 @@ export default function KeyboardShortcuts() {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="bg-[#282828] rounded-xl shadow-2xl w-full max-w-md border border-[#3e3e3e] overflow-hidden">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+    >
+      <div 
+        ref={focusRef}
+        role="dialog"
+        aria-label="Keyboard Shortcuts"
+        className="bg-[#282828] rounded-xl shadow-2xl w-full max-w-md border border-[#3e3e3e] overflow-hidden"
+      >
         <div className="flex items-center justify-between p-4 border-b border-[#3e3e3e]">
           <h2 className="text-xl font-bold text-white tracking-tight">Keyboard Shortcuts</h2>
           <button 
             onClick={() => setIsOpen(false)}
+            aria-label="Close shortcuts"
             className="text-[#b3b3b3] hover:text-white transition-colors p-1 rounded-full hover:bg-[#3e3e3e]"
           >
             <X className="w-5 h-5" />

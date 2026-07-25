@@ -273,8 +273,9 @@ export default function UploadPage() {
                 {/* Metadata Editable Fields */}
                 <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div className="flex flex-col">
-                    <label className="text-xs text-[#b3b3b3] mb-1">Title</label>
+                    <label htmlFor={`title-${track.id}`} className="text-xs text-[#b3b3b3] mb-1">Title</label>
                     <input 
+                      id={`title-${track.id}`}
                       type="text" 
                       value={track.title}
                       onChange={(e) => updateTrackField(track.id, "title", e.target.value)}
@@ -283,8 +284,9 @@ export default function UploadPage() {
                     />
                   </div>
                   <div className="flex flex-col">
-                    <label className="text-xs text-[#b3b3b3] mb-1">Artist</label>
+                    <label htmlFor={`artist-${track.id}`} className="text-xs text-[#b3b3b3] mb-1">Artist</label>
                     <input 
+                      id={`artist-${track.id}`}
                       type="text" 
                       value={track.artist}
                       onChange={(e) => updateTrackField(track.id, "artist", e.target.value)}
@@ -293,8 +295,9 @@ export default function UploadPage() {
                     />
                   </div>
                   <div className="flex flex-col">
-                    <label className="text-xs text-[#b3b3b3] mb-1">Album</label>
+                    <label htmlFor={`album-${track.id}`} className="text-xs text-[#b3b3b3] mb-1">Album</label>
                     <input 
+                      id={`album-${track.id}`}
                       type="text" 
                       value={track.album}
                       onChange={(e) => updateTrackField(track.id, "album", e.target.value)}
@@ -330,7 +333,8 @@ export default function UploadPage() {
                 {track.status !== "uploading" && track.status !== "success" && (
                   <button 
                     onClick={() => removeTrack(track.id)}
-                    className="absolute -top-2 -right-2 bg-[#282828] rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/20 hover:text-red-500"
+                    aria-label={`Remove track ${track.title}`}
+                    className="absolute -top-2 -right-2 bg-[#282828] rounded-full p-1 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity hover:bg-red-500/20 hover:text-red-500"
                   >
                     <X className="w-4 h-4" />
                   </button>

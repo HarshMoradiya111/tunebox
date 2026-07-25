@@ -358,3 +358,25 @@ export async function getArtistTracks(name: string): Promise<any[]> {
   const res = await apiFetch<any[]>(`/artists/${encodeURIComponent(name)}/tracks`);
   return Array.isArray(res) ? res : (res as any).data || [];
 }
+
+// --- Local Library ---
+
+export async function fetchQuickAccess(): Promise<import("../types").MediaItem[]> {
+  const res = await apiFetch<{ success: boolean; data: any[] }>("/library/quick-access");
+  return res.data;
+}
+
+export async function fetchLikedCount(): Promise<number> {
+  const res = await apiFetch<{ success: boolean; count: number }>("/library/liked-count");
+  return res.count;
+}
+
+export async function fetchLocalAlbums(): Promise<any[]> {
+  const res = await apiFetch<{ success: boolean; data: any[] }>("/library/albums");
+  return res.data;
+}
+
+export async function fetchLocalAlbumTracks(albumName: string): Promise<import("../store/playerStore").PlayerTrack[]> {
+  const res = await apiFetch<{ success: boolean; data: ApiSong[] }>(`/library/albums/${encodeURIComponent(albumName)}`);
+  return res.data.map(mapSongToPlayerTrack);
+}

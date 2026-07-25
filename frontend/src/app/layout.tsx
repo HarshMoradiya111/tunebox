@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import PlayerBar from "@/components/PlayerBar";
@@ -9,6 +9,14 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "TuneBox — Web Player: Music for everyone",
   description: "Personal Spotify Clone built with Next.js, Express, and MongoDB",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

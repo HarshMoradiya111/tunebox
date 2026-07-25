@@ -45,3 +45,31 @@ export interface ApiResponse<T> {
   data?: T;
   error?: string;
 }
+
+export interface MediaItem {
+  id: string;
+  title: string;
+  subtitle: string;
+  image: string;
+  type: "playlist" | "album" | "artist";
+}
+
+export interface Genre {
+  id: string;
+  name: string;
+  color: string;
+}
+
+export interface TrackItem {
+  id: string;
+  spotifyId: string;
+  title: string;
+  artist: string;
+  album: string;
+  albumArt: string;
+  duration: number; // seconds
+  dateAdded?: string;
+  streamUrl?: string;
+  isLiked?: boolean;
+  tags?: string[];
+}

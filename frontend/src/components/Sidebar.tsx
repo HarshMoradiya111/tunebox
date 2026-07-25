@@ -90,7 +90,7 @@ export default function Sidebar() {
               <Compass className="w-5 h-5 text-[#b3b3b3]" />
               <span>Playlists</span>
             </div>
-            <button className="p-1 rounded-full hover:bg-[#282828] text-[#b3b3b3] hover:text-white transition-colors">
+            <button aria-label="Create playlist" className="p-1 rounded-full hover:bg-[#282828] text-[#b3b3b3] hover:text-white transition-colors">
               <Plus className="w-4 h-4" />
             </button>
           </div>
@@ -177,7 +177,7 @@ export default function Sidebar() {
       </aside>
 
       {/* Mobile Bottom Navigation (< md) */}
-      <div className="md:hidden fixed bottom-[96px] left-0 right-0 bg-[#121212]/95 backdrop-blur-md border-t border-[#282828] z-40 flex items-center justify-around py-2 px-4 text-[#b3b3b3]">
+      <div className="md:hidden fixed bottom-[calc(64px+env(safe-area-inset-bottom))] left-0 right-0 bg-[#121212]/95 backdrop-blur-md border-t border-[#282828] z-40 flex items-center justify-around py-2 px-4 text-[#b3b3b3]">
         {mainNav.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;

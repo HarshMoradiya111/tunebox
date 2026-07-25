@@ -23,6 +23,7 @@ export default function Header() {
       <div className="flex items-center gap-2">
         <button
           onClick={() => router.back()}
+          aria-label="Go back"
           className="w-8 h-8 rounded-full bg-black/70 hover:bg-black text-white flex items-center justify-center transition-colors"
           title="Go back"
         >
@@ -30,6 +31,7 @@ export default function Header() {
         </button>
         <button
           onClick={() => router.forward()}
+          aria-label="Go forward"
           className="w-8 h-8 rounded-full bg-black/70 hover:bg-black text-white flex items-center justify-center transition-colors"
           title="Go forward"
         >
@@ -40,21 +42,23 @@ export default function Header() {
       {/* Conditional Search Bar */}
       {isSearchPage && (
         <form onSubmit={handleSearchSubmit} className="flex-1 max-w-md relative">
-          <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-[#b3b3b3]" />
+          <label htmlFor="search-input" className="sr-only">Search</label>
+          <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-[#b3b3b3]" aria-hidden="true" />
           <input
+            id="search-input"
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="What do you want to play?"
-            className="w-full bg-[#242424] hover:bg-[#2a2a2a] focus:bg-[#2a2a2a] text-white text-sm rounded-full pl-10 pr-4 py-2.5 outline-none border border-transparent focus:border-white/30 transition-all placeholder:text-[#727272]"
+            className="w-full bg-[#242424] hover:bg-[#2a2a2a] focus:bg-[#2a2a2a] text-white text-sm rounded-full pl-10 pr-4 py-2.5 outline-none border border-transparent focus:border-white/30 transition-all placeholder:text-[#a7a7a7]"
           />
         </form>
       )}
 
       {/* User Profile Pill */}
       <div className="flex items-center gap-3">
-        <button className="flex items-center gap-2 bg-black/70 hover:bg-[#282828] text-white rounded-full p-1 pr-3 transition-colors text-sm font-medium">
-          <div className="w-7 h-7 rounded-full bg-[#282828] flex items-center justify-center text-white">
+        <button aria-label="User profile" className="flex items-center gap-2 bg-black/70 hover:bg-[#282828] text-white rounded-full p-1 pr-3 transition-colors text-sm font-medium">
+          <div aria-hidden="true" className="w-7 h-7 rounded-full bg-[#282828] flex items-center justify-center text-white">
             <User className="w-4 h-4" />
           </div>
           <span>Harsh</span>

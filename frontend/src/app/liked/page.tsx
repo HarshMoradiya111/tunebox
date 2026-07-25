@@ -4,12 +4,12 @@ import { useEffect, useState } from "react";
 import { fetchLikedTracks } from "@/lib/api";
 import { PlayerTrack } from "@/store/playerStore";
 import TrackRow from "@/components/TrackRow";
-import { MockTrack } from "@/lib/mockData";
+import { TrackItem } from "@/types";
 import { Heart, Play, Shuffle, Clock } from "lucide-react";
 import { usePlayer } from "@/store/playerStore";
 
-// Convert PlayerTrack back to MockTrack for TrackRow compatibility
-function playerTrackToMockTrack(t: PlayerTrack): MockTrack {
+// Convert PlayerTrack back to TrackItem for TrackRow compatibility
+function playerTrackToTrackItem(t: PlayerTrack): TrackItem {
   return {
     id: t.id,
     spotifyId: t.spotifyId || "",
@@ -25,7 +25,7 @@ function playerTrackToMockTrack(t: PlayerTrack): MockTrack {
 }
 
 export default function LikedSongsPage() {
-  const [tracks, setTracks] = useState<MockTrack[]>([]);
+  const [tracks, setTracks] = useState<TrackItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { playQueue, isPlaying, currentTrack, pause, togglePlay } = usePlayer();
 
@@ -33,7 +33,7 @@ export default function LikedSongsPage() {
     const loadTracks = async () => {
       try {
         const data = await fetchLikedTracks();
-        setTracks(data.map(playerTrackToMockTrack));
+        setTracks(data.map(playerTrackToTrackItem));
       } catch (err) {
         console.error("Failed to load liked tracks:", err);
       } finally {
