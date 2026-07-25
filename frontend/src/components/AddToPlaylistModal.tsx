@@ -41,6 +41,7 @@ export default function AddToPlaylistModal({ trackId, onClose }: AddToPlaylistMo
       setCreatingLoading(true);
       const newPlaylist = await createUserPlaylist(newPlaylistName.trim());
       await addTrackToUserPlaylist(newPlaylist._id || newPlaylist.spotifyId, trackId);
+      window.dispatchEvent(new Event("saved_playlists_changed"));
       alert(`Added to ${newPlaylist.name}`);
       onClose();
     } catch (err) {
@@ -55,6 +56,7 @@ export default function AddToPlaylistModal({ trackId, onClose }: AddToPlaylistMo
     try {
       setAddingTo(playlist._id);
       await addTrackToUserPlaylist(playlist._id, trackId);
+      window.dispatchEvent(new Event("saved_playlists_changed"));
       alert(`Added to ${playlist.name}`);
       onClose();
     } catch (err) {

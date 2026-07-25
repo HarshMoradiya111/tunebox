@@ -31,8 +31,8 @@ export default function CarouselRow({
 
       {isExpanded ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {items.map((item) => (
-            <Card key={item.id} item={item} />
+          {items.map((item, index) => (
+            <Card key={`${item.id}-${index}`} item={item} />
           ))}
         </div>
       ) : (
@@ -40,8 +40,8 @@ export default function CarouselRow({
           className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 md:pb-0 md:grid md:grid-cols-4 lg:grid-cols-5 md:overflow-visible"
           style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}
         >
-          {items.map((item) => (
-            <div key={item.id} className="snap-start shrink-0 w-[140px] sm:w-[180px] md:w-auto">
+          {items.map((item, index) => (
+            <div key={`${item.id}-${index}`} className="snap-start shrink-0 w-[140px] sm:w-[180px] md:w-auto">
               <Card item={item} />
             </div>
           ))}

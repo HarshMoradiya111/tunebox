@@ -44,20 +44,6 @@ export default function Sidebar() {
     
     window.addEventListener("like_toggled", fetchCount);
     
-    // Existing saved playlists
-    const updateSavedPlaylists = () => {
-      const saved = localStorage.getItem("savedPlaylists");
-      if (saved) {
-        setSavedPlaylists(JSON.parse(saved));
-      } else {
-        setSavedPlaylists([]);
-      }
-    };
-    
-    updateSavedPlaylists();
-    window.addEventListener("saved_playlists_changed", updateSavedPlaylists);
-    
-    // User created playlists
     const fetchUserPlaylists = async () => {
       try {
         const lists = await getUserPlaylists();
@@ -66,11 +52,24 @@ export default function Sidebar() {
         console.error("Failed to fetch user playlists", err);
       }
     };
-    fetchUserPlaylists();
+
+    // Update playlists state
+    const updatePlaylists = () => {
+      const saved = localStorage.getItem("savedPlaylists");
+      if (saved) {
+        setSavedPlaylists(JSON.parse(saved));
+      } else {
+        setSavedPlaylists([]);
+      }
+      fetchUserPlaylists();
+    };
+    
+    updatePlaylists();
+    window.addEventListener("saved_playlists_changed", updatePlaylists);
     
     return () => {
       window.removeEventListener("like_toggled", fetchCount);
-      window.removeEventListener("saved_playlists_changed", updateSavedPlaylists);
+      window.removeEventListener("saved_playlists_changed", updatePlaylists);
     };
   }, []);
 
