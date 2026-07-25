@@ -133,6 +133,9 @@ export default function PlayerBar() {
       ) {
         return;
       }
+      
+      // Ignore if modifier keys (Ctrl/Cmd) are pressed so we don't block browser shortcuts (like Ctrl+R)
+      if (e.ctrlKey || e.metaKey) return;
 
       if (e.code === "Space") {
         e.preventDefault();

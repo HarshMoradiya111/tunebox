@@ -30,22 +30,31 @@ export const getArtists = async (req: Request, res: Response): Promise<any> => {
     // Merge the results
     const artistMap = new Map<string, { name: string; trackCount: number; coverImage: string }>();
 
-    for (const artist of [...songArtists, ...trackArtists]) {
-      // Skip empty artists
-      if (!artist.name) continue;
+    for (const artistGroup of [...songArtists, ...trackArtists]) {
+      if (!artistGroup.name) continue;
       
-      const existing = artistMap.get(artist._id);
-      if (existing) {
-        existing.trackCount += artist.trackCount;
-        if (!existing.coverImage && artist.coverImage) {
-          existing.coverImage = artist.coverImage;
+      // Split artists by comma or ampersand to handle multiple artists properly
+      const splitArtists = artistGroup.name
+        .split(/[,&]+/)
+        .map((a: string) => a.trim())
+        .filter((a: string) => a.length > 0);
+        
+      for (const artistName of splitArtists) {
+        const id = artistName.toLowerCase();
+        const existing = artistMap.get(id);
+        
+        if (existing) {
+          existing.trackCount += artistGroup.trackCount;
+          if (!existing.coverImage && artistGroup.coverImage) {
+            existing.coverImage = artistGroup.coverImage;
+          }
+        } else {
+          artistMap.set(id, {
+            name: artistName,
+            trackCount: artistGroup.trackCount,
+            coverImage: artistGroup.coverImage || "",
+          });
         }
-      } else {
-        artistMap.set(artist._id, {
-          name: artist.name,
-          trackCount: artist.trackCount,
-          coverImage: artist.coverImage || "",
-        });
       }
     }
 
@@ -94,7 +103,7 @@ export const getArtistTracks = async (req: Request, res: Response): Promise<any>
     if (!name) return res.status(400).json({ error: "Artist name is required" });
 
     const nameStr = String(name);
-    const regex = new RegExp(`^${nameStr.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}$`, 'i');
+    const regex = new RegExp(nameStr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
 
     const songs = await Song.find({ artist: regex }).sort({ album: 1, createdAt: 1 }).lean();
     const tracks = await Track.find({ artist: regex }).sort({ album: 1, trackNumber: 1, createdAt: 1 }).lean();

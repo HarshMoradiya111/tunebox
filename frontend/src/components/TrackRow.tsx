@@ -42,7 +42,8 @@ export default function TrackRow({ track, index, allTracks, selectable, isSelect
     e.stopPropagation();
     setIsLiked(!isLiked);
     try {
-      import("@/lib/api").then(api => api.toggleLikeTrack(track.id));
+      await import("@/lib/api").then(api => api.toggleLikeTrack(track.id));
+      window.dispatchEvent(new Event("like_toggled"));
     } catch (err) {
       setIsLiked(isLiked);
     }

@@ -28,9 +28,17 @@ export default function Sidebar() {
 
   useEffect(() => {
     fetchAutoPlaylists().then(setAutoPlaylists).catch(console.error);
-    import("@/lib/api").then((api) => {
-      api.fetchLikedCount().then(setLikedCount).catch(console.error);
-    });
+    
+    const fetchCount = () => {
+      import("@/lib/api").then((api) => {
+        api.fetchLikedCount().then(setLikedCount).catch(console.error);
+      });
+    };
+    
+    fetchCount();
+    
+    window.addEventListener("like_toggled", fetchCount);
+    return () => window.removeEventListener("like_toggled", fetchCount);
   }, []);
 
   // Close menu on click outside
@@ -108,14 +116,6 @@ export default function Sidebar() {
               {showPlusMenu && (
                 <div className="absolute right-0 top-8 w-48 bg-[#282828] border border-[#3e3e3e] rounded-md shadow-xl py-1 z-50 text-xs">
                   <Link
-                    href="/import"
-                    onClick={() => setShowPlusMenu(false)}
-                    className="flex items-center gap-2.5 px-3 py-2 text-[#d1d1d1] hover:text-white hover:bg-[#3e3e3e] transition-colors"
-                  >
-                    <Link2 className="w-3.5 h-3.5 text-[#1db954]" />
-                    <span>Import Spotify Playlist</span>
-                  </Link>
-                  <Link
                     href="/upload"
                     onClick={() => setShowPlusMenu(false)}
                     className="flex items-center gap-2.5 px-3 py-2 text-[#d1d1d1] hover:text-white hover:bg-[#3e3e3e] transition-colors"
@@ -130,13 +130,6 @@ export default function Sidebar() {
 
           {/* Action Chips */}
           <div className="flex items-center gap-2 px-1 mb-3 shrink-0">
-            <Link
-              href="/import"
-              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 bg-[#242424] hover:bg-[#323232] text-xs font-medium text-white rounded-full transition-colors border border-white/5"
-            >
-              <Link2 className="w-3.5 h-3.5 text-[#1db954]" />
-              <span>Import</span>
-            </Link>
             <Link
               href="/upload"
               className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 bg-[#242424] hover:bg-[#323232] text-xs font-medium text-white rounded-full transition-colors border border-white/5"
