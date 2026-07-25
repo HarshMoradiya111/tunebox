@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
 import { Song, Track } from "../models";
+import ArtistMetadata from "../models/ArtistMetadata";
+import axios from "axios";
 
 export const getArtists = async (req: Request, res: Response): Promise<any> => {
   try {
@@ -48,6 +50,36 @@ export const getArtists = async (req: Request, res: Response): Promise<any> => {
     }
 
     const mergedArtists = Array.from(artistMap.values()).sort((a, b) => b.trackCount - a.trackCount);
+
+    // Fetch images for artists from DB or Deezer
+    const artistNames = mergedArtists.map((a) => a.name);
+    const existingMetadata = await ArtistMetadata.find({ name: { $in: artistNames } });
+    
+    // Create map for O(1) lookups
+    const metaMap = new Map(existingMetadata.map((m) => [m.name, m.image]));
+    
+    // Process artists sequentially to avoid Deezer API rate limits
+    for (const artist of mergedArtists) {
+      if (metaMap.has(artist.name)) {
+        const cachedImg = metaMap.get(artist.name);
+        if (cachedImg) artist.coverImage = cachedImg;
+      } else {
+        // Fetch from Deezer API
+        try {
+          const dzRes = await axios.get(`https://api.deezer.com/search/artist?q=${encodeURIComponent(artist.name)}&limit=1`);
+          const dzImg = dzRes.data?.data?.[0]?.picture_xl || dzRes.data?.data?.[0]?.picture_medium;
+          
+          if (dzImg) {
+            artist.coverImage = dzImg;
+          }
+          // Save to DB so we don't query again
+          await ArtistMetadata.create({ name: artist.name, image: dzImg || "" });
+        } catch (dzErr) {
+          console.error(`Failed to fetch Deezer image for ${artist.name}:`, (dzErr as Error).message);
+          await ArtistMetadata.create({ name: artist.name, image: "" }).catch(() => {});
+        }
+      }
+    }
 
     return res.status(200).json(mergedArtists);
   } catch (error) {

@@ -51,6 +51,14 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "placehold.co",
       },
+      {
+        protocol: "https",
+        hostname: "api.deezer.com",
+      },
+      {
+        protocol: "https",
+        hostname: "e-cdns-images.dzcdn.net",
+      },
     ],
   },
 };
