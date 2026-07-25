@@ -261,14 +261,20 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   const addToQueue = useCallback(
     (track: PlayerTrack) => {
-      setQueue((prev) => [...prev, track]);
+      setQueue((prev) => {
+        if (prev.length === 0) {
+          // If queue was empty, play this track without overwriting the queue
+          setTimeout(() => {
+            setQueueIndex(0);
+            loadTrack(track, true);
+          }, 0);
+        }
+        return [...prev, track];
+      });
+      
       setOriginalQueue((prev) => [...prev, track]);
-      // If nothing is playing, play it
-      if (!currentTrack) {
-        playTrack(track);
-      }
     },
-    [currentTrack, playTrack]
+    [loadTrack]
   );
 
   const playNext = useCallback(
