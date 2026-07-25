@@ -61,8 +61,8 @@ export const getArtistTracks = async (req: Request, res: Response): Promise<any>
     const { name } = req.params;
     if (!name) return res.status(400).json({ error: "Artist name is required" });
 
-    // Case-insensitive regex match
-    const regex = new RegExp(`^${name.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}$`, 'i');
+    const nameStr = String(name);
+    const regex = new RegExp(`^${nameStr.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}$`, 'i');
 
     const songs = await Song.find({ artist: regex }).sort({ album: 1, createdAt: 1 }).lean();
     const tracks = await Track.find({ artist: regex }).sort({ album: 1, trackNumber: 1, createdAt: 1 }).lean();

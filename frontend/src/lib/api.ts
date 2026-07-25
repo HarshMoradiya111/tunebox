@@ -137,6 +137,11 @@ export async function fetchPlaylist(
   return res.data;
 }
 
+export async function fetchAutoPlaylists(): Promise<any[]> {
+  const res = await apiFetch<any[]>("/playlist");
+  return Array.isArray(res) ? res : (res as any).data || [];
+}
+
 /** Import a playlist from a Spotify URL */
 export async function importPlaylistApi(url: string): Promise<ApiPlaylistDetail> {
   const res = await apiFetch<{ success: boolean; playlist: ApiPlaylistDetail }>("/playlist/import", {

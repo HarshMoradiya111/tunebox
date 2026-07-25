@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -12,10 +13,16 @@ import {
   Compass,
 } from "lucide-react";
 import { usePlayer } from "@/store/playerStore";
+import { fetchAutoPlaylists } from "@/lib/api";
 
 export default function Sidebar() {
   const pathname = usePathname();
   const { savedPlaylists } = usePlayer();
+  const [autoPlaylists, setAutoPlaylists] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetchAutoPlaylists().then(setAutoPlaylists).catch(console.error);
+  }, []);
 
   const mainNav = [
     { name: "Home", href: "/", icon: Home },
@@ -146,6 +153,16 @@ export default function Sidebar() {
 
           {/* Scrollable Playlist List */}
           <div className="flex-1 overflow-y-auto flex flex-col gap-1 pr-1 border-t border-[#282828] pt-2">
+            {autoPlaylists.map((pl) => (
+              <Link
+                key={pl.spotifyId || pl.id}
+                href={`/playlist/${pl.spotifyId || pl.id}`}
+                className="flex items-center justify-between px-2 py-1.5 rounded text-sm text-[#b3b3b3] hover:text-white hover:bg-[#1a1a1a] transition-colors shrink-0 group"
+              >
+                <span className="truncate">{pl.name}</span>
+                <span className="text-[9px] uppercase tracking-wider font-bold bg-[#282828] group-hover:bg-[#333] px-1.5 py-0.5 rounded text-[#1db954]">Auto</span>
+              </Link>
+            ))}
             {allPlaylists.map((pl) => (
               <Link
                 key={pl.id}
