@@ -34,23 +34,8 @@ export default function Sidebar() {
     { name: "Your Library", href: "/playlist/liked-songs", icon: Library },
   ];
 
-  const defaultPlaylists = [
-    { id: "37i9dQZEVXbMDoHDwVN2tF", name: "Top 50 - Global" },
-    { id: "37i9dQZF1DXcBWIGoYBM5M", name: "Today's Top Hits" },
-    { id: "chill-vibes", name: "Chill Lofi Study Beats" },
-    { id: "deep-focus", name: "Deep Focus" },
-    { id: "synthwave-drive", name: "Synthwave Retro Drive" },
-    { id: "rock-classics", name: "Rock Classics" },
-    { id: "coding-mode", name: "Coding Mode Flow State" },
-  ];
-
-  // Combine default playlists and saved playlists (avoiding duplicates)
-  const allPlaylists = [...defaultPlaylists];
-  savedPlaylists.forEach((sp) => {
-    if (!allPlaylists.some((p) => p.id === sp.id)) {
-      allPlaylists.push(sp);
-    }
-  });
+  // Only use user's saved playlists
+  const allPlaylists = [...savedPlaylists];
 
   return (
     <>
