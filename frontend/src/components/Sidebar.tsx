@@ -102,6 +102,20 @@ export default function Sidebar() {
             </div>
           </Link>
 
+          {/* My Uploads Pill */}
+          <Link
+            href="/library/uploads"
+            className="flex items-center gap-3 p-2 rounded-md hover:bg-[#1a1a1a] transition-colors group mb-2"
+          >
+            <div className="w-10 h-10 rounded bg-gradient-to-br from-green-400 to-[#1db954] flex items-center justify-center text-black">
+              <Music2 className="w-5 h-5 fill-current" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-white text-sm font-medium group-hover:underline">My Uploads</span>
+              <span className="text-xs text-[#b3b3b3]">Local Library</span>
+            </div>
+          </Link>
+
           {/* Import Playlist Action */}
           <Link
             href="/import"

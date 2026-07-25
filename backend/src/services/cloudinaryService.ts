@@ -40,6 +40,27 @@ export async function uploadAudioToCloudinary(
 }
 
 /**
+ * Uploads an image file (cover art) to Cloudinary.
+ * @returns The secure URL of the uploaded resource.
+ */
+export async function uploadImageToCloudinary(
+  filePath: string,
+  publicId: string
+): Promise<string> {
+  if (!isCloudinaryConfigured()) {
+    throw new Error("Cloudinary is not configured in environment variables.");
+  }
+
+  const result = await cloudinary.uploader.upload(filePath, {
+    resource_type: "image",
+    folder: "tunebox-covers",
+    public_id: publicId,
+  });
+
+  return result.secure_url;
+}
+
+/**
  * Deletes a resource from Cloudinary.
  */
 export async function deleteFromCloudinary(publicId: string): Promise<void> {

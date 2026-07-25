@@ -240,3 +240,16 @@ export async function deleteUploadedTrack(songId: string): Promise<{ success: bo
   });
   return res;
 }
+
+export async function updateUploadedTrack(songId: string, data: { title?: string; artist?: string; album?: string }): Promise<import("../store/playerStore").PlayerTrack> {
+  const res = await apiFetch<{ success: boolean; data: ApiSong }>(`/upload/${songId}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+  return mapSongToPlayerTrack(res.data || (res as any));
+}
+
+export async function fetchUploadedTracks(): Promise<import("../store/playerStore").PlayerTrack[]> {
+  const res = await apiFetch<ApiSong[]>("/upload");
+  return res.map(mapSongToPlayerTrack);
+}

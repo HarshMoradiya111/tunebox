@@ -16,14 +16,16 @@ interface LocalTrack {
   album: string;
   duration: number;
   albumArt: string; // Object URL or empty string
+  coverFile?: File; // Extracted cover file to send to backend
   progress: number;
-  status: "pending" | "uploading" | "success" | "error";
+  status: "pending" | "uploading" | "success" | "error" | "skipped";
 }
 
 export default function UploadPage() {
   const [tracks, setTracks] = useState<LocalTrack[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
   const { addToQueue } = usePlayer();
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
@@ -34,6 +36,7 @@ export default function UploadPage() {
     }
     // reset input
     if (fileInputRef.current) fileInputRef.current.value = "";
+    if (folderInputRef.current) folderInputRef.current.value = "";
   };
 
   const processFiles = async (files: File[]) => {
@@ -44,10 +47,13 @@ export default function UploadPage() {
         const metadata = await parseBlob(file);
         
         let albumArtUrl = "";
+        let coverFile: File | undefined;
+
         if (metadata.common.picture && metadata.common.picture.length > 0) {
           const pic = metadata.common.picture[0];
           const blob = new Blob([new Uint8Array(pic.data)], { type: pic.format });
           albumArtUrl = URL.createObjectURL(blob);
+          coverFile = new File([blob], 'cover.jpg', { type: pic.format });
         }
 
         const newTrack: LocalTrack = {
@@ -58,6 +64,7 @@ export default function UploadPage() {
           album: metadata.common.album || "Unknown Album",
           duration: metadata.format.duration || 0,
           albumArt: albumArtUrl,
+          coverFile,
           progress: 0,
           status: "pending"
         };
@@ -90,7 +97,7 @@ export default function UploadPage() {
     setTracks(prev => prev.filter(t => t.id !== id));
   };
 
-  const updateTrackField = (id: string, field: keyof LocalTrack, value: string) => {
+  const updateTrackField = (id: string, field: keyof LocalTrack, value: string | number) => {
     setTracks(prev => prev.map(t => t.id === id ? { ...t, [field]: value } : t));
   };
 
@@ -99,6 +106,7 @@ export default function UploadPage() {
     
     for (const track of pendingTracks) {
       updateTrackField(track.id, "status", "uploading");
+      updateTrackField(track.id, "progress", 0);
       
       const formData = new FormData();
       formData.append("audio", track.file);
@@ -106,29 +114,55 @@ export default function UploadPage() {
       formData.append("artist", track.artist);
       formData.append("album", track.album);
       formData.append("duration", track.duration.toString());
+      if (track.coverFile) {
+        formData.append("coverArt", track.coverFile);
+      }
 
-      try {
-        const response = await axios.post(`${API_URL}/upload`, formData, {
+      const performUpload = async (forceUpload = false) => {
+        if (forceUpload) formData.append("force", "true");
+        return axios.post(`${API_URL}/upload`, formData, {
           headers: {
             "Content-Type": "multipart/form-data"
           },
           onUploadProgress: (progressEvent) => {
             if (progressEvent.total) {
               const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-              setTracks(prev => prev.map(t => t.id === track.id ? { ...t, progress: percentCompleted } : t));
+              updateTrackField(track.id, "progress", percentCompleted);
             }
           }
         });
+      };
+
+      try {
+        const response = await performUpload();
         
         updateTrackField(track.id, "status", "success");
-        
-        // Add successfully uploaded track to the player queue
         if (response.data) {
           addToQueue(mapSongToPlayerTrack(response.data));
         }
-      } catch (err) {
-        console.error("Upload failed for", track.title, err);
-        updateTrackField(track.id, "status", "error");
+      } catch (err: any) {
+        if (err.response?.status === 409) {
+          // Ask user to force upload
+          const proceed = window.confirm(`"${track.title}" by ${track.artist} already exists in your library. Do you want to upload it anyway?`);
+          if (proceed) {
+            updateTrackField(track.id, "progress", 0);
+            try {
+              const response = await performUpload(true);
+              updateTrackField(track.id, "status", "success");
+              if (response.data) {
+                addToQueue(mapSongToPlayerTrack(response.data));
+              }
+            } catch (err2) {
+              console.error("Force upload failed for", track.title, err2);
+              updateTrackField(track.id, "status", "error");
+            }
+          } else {
+            updateTrackField(track.id, "status", "skipped");
+          }
+        } else {
+          console.error("Upload failed for", track.title, err);
+          updateTrackField(track.id, "status", "error");
+        }
       }
     }
   };
@@ -139,25 +173,50 @@ export default function UploadPage() {
       
       {/* Upload Dropzone */}
       <div 
-        className={`border-2 border-dashed rounded-xl p-12 text-center transition-colors cursor-pointer ${
+        className={`border-2 border-dashed rounded-xl p-12 text-center transition-colors ${
           isDragging ? "border-[#1db954] bg-[#1db954]/10" : "border-[#282828] hover:border-[#b3b3b3]"
         }`}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
-        onClick={() => fileInputRef.current?.click()}
       >
         <Upload className="w-12 h-12 mx-auto mb-4 text-[#b3b3b3]" />
-        <h3 className="text-lg font-medium mb-2">Drag & Drop audio files here</h3>
-        <p className="text-[#b3b3b3] text-sm mb-6">or click to browse from your device</p>
-        <button className="bg-[#1db954] text-black font-bold py-3 px-8 rounded-full hover:scale-105 transition-transform">
-          Select Files
-        </button>
+        <h3 className="text-lg font-medium mb-2">Drag & Drop audio files or folders here</h3>
+        <p className="text-[#b3b3b3] text-sm mb-6">or click a button below to browse from your device</p>
+        
+        <div className="flex items-center justify-center gap-4">
+          <button 
+            onClick={() => fileInputRef.current?.click()}
+            className="bg-[#1db954] text-black font-bold py-3 px-8 rounded-full hover:scale-105 transition-transform"
+          >
+            Select Files
+          </button>
+          
+          <button 
+            onClick={() => folderInputRef.current?.click()}
+            className="bg-[#282828] text-white font-bold py-3 px-8 rounded-full hover:scale-105 hover:bg-[#333] transition-colors"
+          >
+            Select Folder
+          </button>
+        </div>
+
         <input 
           type="file" 
           ref={fileInputRef} 
           className="hidden" 
           accept="audio/*" 
+          multiple 
+          onChange={handleFileChange}
+        />
+        
+        <input 
+          type="file" 
+          ref={folderInputRef} 
+          className="hidden" 
+          accept="audio/*" 
+          // @ts-expect-error webkitdirectory is a non-standard attribute but widely supported
+          webkitdirectory="true" 
+          directory="true" 
           multiple 
           onChange={handleFileChange}
         />
@@ -178,8 +237,8 @@ export default function UploadPage() {
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-4 pr-2">
-            {tracks.map((track, idx) => (
-              <div key={track.id} className="bg-[#181818] rounded-lg p-4 flex gap-4 items-center group relative">
+            {tracks.map((track) => (
+              <div key={track.id} className={`bg-[#181818] rounded-lg p-4 flex gap-4 items-center group relative ${track.status === 'skipped' ? 'opacity-50' : ''}`}>
                 {/* Cover Art Preview */}
                 <div className="w-16 h-16 bg-[#282828] rounded flex shrink-0 items-center justify-center relative overflow-hidden">
                   {track.albumArt ? (
@@ -229,6 +288,7 @@ export default function UploadPage() {
                     track.status === "success" ? "text-[#1db954]" :
                     track.status === "error" ? "text-red-500" :
                     track.status === "uploading" ? "text-blue-400" :
+                    track.status === "skipped" ? "text-[#b3b3b3]" :
                     "text-[#b3b3b3]"
                   }`}>
                     {track.status}
