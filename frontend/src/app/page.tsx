@@ -8,6 +8,7 @@ import {
   fetchRecentlyPlayed,
   fetchMostPlayed,
   fetchRecentlyAdded,
+  getArtists,
   ApiFeaturedPlaylist,
   ApiNewRelease,
 } from "@/lib/api";
@@ -50,6 +51,16 @@ function playerTrackToMediaItem(t: PlayerTrack): MockMediaItem {
   };
 }
 
+function artistToMediaItem(a: { name: string; trackCount: number; coverImage: string }): MockMediaItem {
+  return {
+    id: a.name,
+    title: a.name,
+    subtitle: "Artist",
+    image: a.coverImage,
+    type: "artist",
+  };
+}
+
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
@@ -58,14 +69,16 @@ export default async function Home() {
   let recentlyPlayedItems: MockMediaItem[] = [];
   let mostPlayedItems: MockMediaItem[] = [];
   let recentlyAddedItems: MockMediaItem[] = [];
+  let artistItems: MockMediaItem[] = [];
 
   try {
-    const [featured, releases, recent, mostPlayed, recentlyAdded] = await Promise.all([
+    const [featured, releases, recent, mostPlayed, recentlyAdded, artists] = await Promise.all([
       fetchFeaturedPlaylists(),
       fetchNewReleases(),
       fetchRecentlyPlayed().catch(() => []),
       fetchMostPlayed().catch(() => []),
       fetchRecentlyAdded().catch(() => []),
+      getArtists().catch(() => []),
     ]);
     featuredItems = featured.map(playlistToMediaItem);
     newReleaseItems = releases.map(releaseToMediaItem);
@@ -78,6 +91,9 @@ export default async function Home() {
     }
     if (recentlyAdded && Array.isArray(recentlyAdded)) {
       recentlyAddedItems = recentlyAdded.map(playerTrackToMediaItem);
+    }
+    if (artists && Array.isArray(artists)) {
+      artistItems = artists.map(artistToMediaItem);
     }
   } catch {
     // Fallback to mock data when backend is not running
@@ -144,6 +160,10 @@ export default async function Home() {
       
       {recentlyAddedItems.length > 0 && (
         <CarouselRow title="Recently Added" items={recentlyAddedItems} />
+      )}
+
+      {artistItems.length > 0 && (
+        <CarouselRow title="Artists" items={artistItems} />
       )}
 
       {/* Featured Playlists Row */}

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import {
   Play,
   Pause,
@@ -198,9 +199,9 @@ export default function PlayerBar() {
               <span className="text-white text-sm font-medium hover:underline truncate cursor-pointer">
                 {currentTrack.title}
               </span>
-              <span className="text-[#b3b3b3] text-xs hover:underline truncate cursor-pointer">
+              <Link href={`/artist/${encodeURIComponent(currentTrack.artist)}`} className="text-[#b3b3b3] text-xs hover:underline truncate cursor-pointer">
                 {currentTrack.artist}
-              </span>
+              </Link>
             </div>
             <button
               onClick={handleToggleLike}

@@ -5,6 +5,10 @@ import morgan from "morgan";
 import config from "./config";
 import connectDB from "./config/database";
 import routes from "./routes";
+import searchRoutes from "./routes/search";
+import uploadRoutes from "./routes/upload";
+import playlistRoutes from "./routes/playlists";
+import artistRoutes from "./routes/artists";
 import { errorHandler, notFoundHandler } from "./middleware";
 
 const app = express();
@@ -47,6 +51,10 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 // ---------------------
 app.use("/api", routes);
+app.use("/api/search", searchRoutes);
+app.use("/api/upload", uploadRoutes);
+app.use("/api/playlists", playlistRoutes);
+app.use("/api/artists", artistRoutes);
 
 // ---------------------
 // Error Handling

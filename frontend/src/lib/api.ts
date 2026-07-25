@@ -183,6 +183,21 @@ export function mapSongToPlayerTrack(song: ApiSong): import("../store/playerStor
   };
 }
 
+export function mapTrackToPlayerTrack(t: any): import("../store/playerStore").PlayerTrack {
+  const isMs = t.duration > 10000; // rough heuristic: > 10,000 means it's in ms
+  return {
+    id: t._id || t.spotifyId,
+    spotifyId: t.spotifyId,
+    title: t.title,
+    artist: t.artist,
+    album: t.album,
+    albumArt: t.albumArt,
+    duration: isMs ? Math.round(t.duration / 1000) : Math.round(t.duration || 0),
+    streamUrl: t.streamUrl,
+    isLiked: false,
+  };
+}
+
 export interface FetchSongResponse {
   success: boolean;
   source: "cache" | "in-progress" | "queued";
@@ -323,4 +338,18 @@ export async function batchTagTracks(songIds: string[], tags: string[]): Promise
 export async function fetchStorageUsage(): Promise<any> {
   const res = await apiFetch<{ success: boolean; data: any }>("/storage/usage");
   return res.data;
+}
+
+// --- Artists ---
+
+export async function getArtists(): Promise<{ name: string; trackCount: number; coverImage: string }[]> {
+  const res = await apiFetch<any[]>("/artists");
+  // Assuming the backend returns the array directly, or { data: ... }
+  // Our backend returned the array directly in artistController
+  return Array.isArray(res) ? res : (res as any).data || [];
+}
+
+export async function getArtistTracks(name: string): Promise<any[]> {
+  const res = await apiFetch<any[]>(`/artists/${encodeURIComponent(name)}/tracks`);
+  return Array.isArray(res) ? res : (res as any).data || [];
 }

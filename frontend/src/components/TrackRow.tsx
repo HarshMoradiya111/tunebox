@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { Play, Pause, Heart, MoreHorizontal, ListPlus, Trash2, Pencil, Check, X, PlaySquare } from "lucide-react";
 import { useState, useEffect } from "react";
 import { MockTrack } from "@/lib/mockData";
@@ -226,9 +227,13 @@ export default function TrackRow({ track, index, allTracks, selectable, isSelect
               >
                 {displayTitle}
               </span>
-              <span className="text-xs text-[#b3b3b3] hover:underline cursor-pointer truncate">
+              <Link
+                href={`/artist/${encodeURIComponent(displayArtist)}`}
+                className="text-xs text-[#b3b3b3] hover:underline cursor-pointer truncate"
+                onClick={(e) => e.stopPropagation()}
+              >
                 {displayArtist}
-              </span>
+              </Link>
             </>
           )}
         </div>

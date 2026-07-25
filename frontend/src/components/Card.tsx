@@ -10,20 +10,22 @@ interface CardProps {
 }
 
 export default function Card({ item }: CardProps) {
-  const href = item.type === "album" ? `/album/${item.id}` : `/playlist/${item.id}`;
+  let href = `/playlist/${item.id}`;
+  if (item.type === "album") href = `/album/${item.id}`;
+  if (item.type === "artist") href = `/artist/${encodeURIComponent(item.id)}`;
 
   return (
     <Link
       href={href}
       className="p-4 bg-[#181818] hover:bg-[#282828] transition-all duration-300 rounded-lg group cursor-pointer flex flex-col gap-3 relative"
     >
-      <div className="relative aspect-square w-full rounded-md shadow-lg overflow-hidden bg-[#242424]">
+      <div className={`relative aspect-square w-full shadow-lg bg-[#242424] ${item.type === "artist" ? "rounded-full" : "rounded-md overflow-hidden"}`}>
         <Image
           src={item.image}
           alt={item.title}
           fill
           sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
-          className="object-cover group-hover:scale-105 transition-transform duration-300"
+          className={`object-cover group-hover:scale-105 transition-transform duration-300 ${item.type === "artist" ? "rounded-full" : ""}`}
         />
         {/* Floating Green Play Button on Hover */}
         <button className="w-12 h-12 rounded-full bg-[#1db954] hover:bg-[#1ed760] hover:scale-105 shadow-xl flex items-center justify-center text-black absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300">

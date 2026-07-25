@@ -3,6 +3,7 @@ import { Song } from "../models";
 import { uploadAudioToCloudinary, uploadImageToCloudinary, deleteFromCloudinary } from "../services/cloudinaryService";
 import path from "path";
 import fs from "fs";
+import { normalizeArtist } from "../utils/normalizeArtist";
 
 export const uploadTrack = async (req: Request, res: Response): Promise<any> => {
   try {
@@ -32,8 +33,8 @@ export const uploadTrack = async (req: Request, res: Response): Promise<any> => 
       return res.status(400).json({ error: "File exceeds 20MB limit." });
     }
 
-    const trackTitle = metadata.title || "Unknown Title";
-    const trackArtist = metadata.artist || "Unknown Artist";
+    const trackTitle = metadata.title ? String(metadata.title).trim() : "Unknown Title";
+    const trackArtist = normalizeArtist(metadata.artist);
 
     // Duplicate detection
     if (metadata.force !== "true") {
@@ -138,9 +139,9 @@ export const editUploadedSong = async (req: Request, res: Response): Promise<any
       return res.status(403).json({ error: "Cannot edit non-local tracks via this endpoint" });
     }
 
-    if (title) song.title = title;
-    if (artist) song.artist = artist;
-    if (album) song.album = album;
+    if (title) song.title = String(title).trim();
+    if (artist) song.artist = normalizeArtist(artist);
+    if (album) song.album = String(album).trim();
 
     await song.save();
     return res.status(200).json(song);
