@@ -164,6 +164,7 @@ export interface ApiSong {
   status: "pending" | "downloading" | "ready" | "failed";
   errorMessage?: string;
   isLiked?: boolean;
+  tags?: string[];
 }
 
 /** Helper to map ApiSong to PlayerTrack */
@@ -178,6 +179,7 @@ export function mapSongToPlayerTrack(song: ApiSong): import("../store/playerStor
     duration: song.duration,
     streamUrl: song.streamUrl,
     isLiked: song.isLiked,
+    tags: song.tags,
   };
 }
 
@@ -282,4 +284,43 @@ export async function fetchRecentlyPlayed(): Promise<import("../store/playerStor
 export async function searchLibrary(query: string): Promise<import("../store/playerStore").PlayerTrack[]> {
   const res = await apiFetch<{ success: boolean; data: ApiSong[] }>(`/tracks/library/search?q=${encodeURIComponent(query)}`);
   return res.data.map(mapSongToPlayerTrack);
+}
+
+// --- Phase 8: Smart Playlists, Tagging, Batch Ops, Export, Storage ---
+
+export async function fetchMostPlayed(): Promise<import("../store/playerStore").PlayerTrack[]> {
+  const res = await apiFetch<{ success: boolean; data: ApiSong[] }>("/playlists/smart/most-played");
+  return res.data.map(mapSongToPlayerTrack);
+}
+
+export async function fetchRecentlyAdded(): Promise<import("../store/playerStore").PlayerTrack[]> {
+  const res = await apiFetch<{ success: boolean; data: ApiSong[] }>("/playlists/smart/recently-added");
+  return res.data.map(mapSongToPlayerTrack);
+}
+
+export async function updateTrackTags(songId: string, tags: string[]): Promise<import("../store/playerStore").PlayerTrack> {
+  const res = await apiFetch<{ success: boolean; data: ApiSong }>(`/tracks/${songId}/tags`, {
+    method: "PATCH",
+    body: JSON.stringify({ tags }),
+  });
+  return mapSongToPlayerTrack(res.data);
+}
+
+export async function batchDeleteTracks(songIds: string[]): Promise<{ success: boolean; message: string }> {
+  return apiFetch<{ success: boolean; message: string }>("/tracks/batch-delete", {
+    method: "POST",
+    body: JSON.stringify({ songIds }),
+  });
+}
+
+export async function batchTagTracks(songIds: string[], tags: string[]): Promise<{ success: boolean; message: string }> {
+  return apiFetch<{ success: boolean; message: string }>("/tracks/batch-tags", {
+    method: "POST",
+    body: JSON.stringify({ songIds, tags }),
+  });
+}
+
+export async function fetchStorageUsage(): Promise<any> {
+  const res = await apiFetch<{ success: boolean; data: any }>("/storage/usage");
+  return res.data;
 }

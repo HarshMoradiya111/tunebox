@@ -111,3 +111,80 @@ export const searchLocalLibrary = async (req: Request, res: Response): Promise<a
     res.status(500).json({ success: false, message: "Failed to search library" });
   }
 };
+
+// Update Tags
+export const updateTags = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { id } = req.params;
+    const { tags } = req.body;
+    
+    if (!Array.isArray(tags)) {
+      return res.status(400).json({ success: false, message: "Tags must be an array of strings" });
+    }
+
+    const song = await Song.findById(id);
+    if (!song) {
+      return res.status(404).json({ success: false, message: "Song not found" });
+    }
+
+    song.tags = tags;
+    await song.save();
+
+    res.json({ success: true, data: song });
+  } catch (error) {
+    console.error("Update tags error:", error);
+    res.status(500).json({ success: false, message: "Failed to update tags" });
+  }
+};
+
+// Batch Delete
+export const batchDelete = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { songIds } = req.body;
+    if (!Array.isArray(songIds)) {
+      return res.status(400).json({ success: false, message: "songIds must be an array" });
+    }
+
+    // Need deleteFromCloudinary from cloudinaryService
+    const { deleteFromCloudinary } = await import("../services/cloudinaryService");
+
+    const songs = await Song.find({ _id: { $in: songIds } });
+    
+    let deletedCount = 0;
+    for (const song of songs) {
+      // Only delete local uploads
+      if (song.spotifyTrackId.startsWith("local-")) {
+        if (song.cloudinaryPublicId) {
+          await deleteFromCloudinary(song.cloudinaryPublicId);
+        }
+        await Song.findByIdAndDelete(song._id);
+        deletedCount++;
+      }
+    }
+
+    res.json({ success: true, message: `Deleted ${deletedCount} tracks` });
+  } catch (error) {
+    console.error("Batch delete error:", error);
+    res.status(500).json({ success: false, message: "Failed to batch delete tracks" });
+  }
+};
+
+// Batch Tags
+export const batchTags = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { songIds, tags } = req.body;
+    if (!Array.isArray(songIds) || !Array.isArray(tags)) {
+      return res.status(400).json({ success: false, message: "songIds and tags must be arrays" });
+    }
+
+    await Song.updateMany(
+      { _id: { $in: songIds } },
+      { $addToSet: { tags: { $each: tags } } } // $addToSet prevents duplicates
+    );
+
+    res.json({ success: true, message: `Added tags to ${songIds.length} tracks` });
+  } catch (error) {
+    console.error("Batch tags error:", error);
+    res.status(500).json({ success: false, message: "Failed to batch tag tracks" });
+  }
+};

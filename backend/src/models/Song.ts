@@ -18,6 +18,7 @@ export interface ISong extends Document {
   cloudinaryPublicId?: string;
   isLiked: boolean;
   playCount: number;
+  tags: string[];
 }
 
 const songSchema = new Schema<ISong>(
@@ -41,6 +42,7 @@ const songSchema = new Schema<ISong>(
     cloudinaryPublicId: { type: String },
     isLiked: { type: Boolean, default: false },
     playCount: { type: Number, default: 0 },
+    tags: { type: [String], default: [] },
   },
   { timestamps: true }
 );

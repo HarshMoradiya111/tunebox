@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { parseBlob } from "music-metadata-browser";
 import axios from "axios";
-import { Upload, Music, X, Play } from "lucide-react";
+import { Upload, Music, X, Play, HardDrive } from "lucide-react";
 import Image from "next/image";
-import { mapSongToPlayerTrack } from "@/lib/api";
+import { mapSongToPlayerTrack, fetchStorageUsage } from "@/lib/api";
 import { usePlayer } from "@/store/playerStore";
 
 interface LocalTrack {
@@ -24,6 +24,7 @@ interface LocalTrack {
 export default function UploadPage() {
   const [tracks, setTracks] = useState<LocalTrack[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [storageUsage, setStorageUsage] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const { addToQueue } = usePlayer();
@@ -38,6 +39,10 @@ export default function UploadPage() {
     if (fileInputRef.current) fileInputRef.current.value = "";
     if (folderInputRef.current) folderInputRef.current.value = "";
   };
+
+  useEffect(() => {
+    fetchStorageUsage().then(data => setStorageUsage(data)).catch(err => console.error(err));
+  }, []);
 
   const processFiles = async (files: File[]) => {
     const audioFiles = files.filter(f => f.type.startsWith("audio/"));
@@ -169,7 +174,24 @@ export default function UploadPage() {
 
   return (
     <div className="flex flex-col h-full text-white max-w-4xl mx-auto w-full pt-8 px-4">
-      <h1 className="text-3xl font-bold mb-6">Upload Music</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold">Upload Music</h1>
+        
+        {storageUsage && (
+          <div className="flex items-center gap-2 text-sm text-[#b3b3b3] bg-[#282828] py-1.5 px-3 rounded-full">
+            <HardDrive className="w-4 h-4" />
+            <span>
+              Storage: {(storageUsage.storage.usage / (1024 * 1024)).toFixed(1)} MB / {(storageUsage.storage.limit / (1024 * 1024)).toFixed(1)} MB
+            </span>
+            <div className="w-16 h-1.5 bg-[#404040] rounded-full overflow-hidden ml-1">
+              <div 
+                className="h-full bg-[#1db954]"
+                style={{ width: `${(storageUsage.storage.usage / storageUsage.storage.limit) * 100}%` }}
+              />
+            </div>
+          </div>
+        )}
+      </div>
       
       {/* Upload Dropzone */}
       <div 

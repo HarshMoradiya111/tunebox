@@ -7,6 +7,9 @@ import streamRoutes from "./stream";
 import musicRoutes from "./musicRoutes";
 import uploadRoutes from "./upload";
 import trackRoutes from "./tracks";
+import smartPlaylistsRoutes from "./smartPlaylists";
+import libraryRoutes from "./library";
+import storageRoutes from "./storage";
 
 const router = Router();
 
@@ -15,6 +18,9 @@ router.use("/", healthRoutes);
 router.use("/", musicRoutes);
 router.use("/browse", browseRoutes);
 router.use("/playlist", playlistRoutes);
+router.use("/playlists/smart", smartPlaylistsRoutes);
+router.use("/library", libraryRoutes);
+router.use("/storage", storageRoutes);
 router.use("/fetch-song", fetchSongRoutes);
 router.use("/stream", streamRoutes);
 router.use("/upload", uploadRoutes);

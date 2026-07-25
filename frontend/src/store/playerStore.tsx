@@ -21,8 +21,9 @@ export interface PlayerTrack {
   album: string;
   albumArt: string;
   duration: number; // seconds
-  streamUrl?: string; // backend stream URL
-  isLiked?: boolean;
+  streamUrl?: string; // Pre-fetched stream URL from backend (Phase 7)
+  isLiked?: boolean;  // Liked status
+  tags?: string[];
 }
 
 interface PlayerState {

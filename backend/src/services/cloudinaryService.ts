@@ -69,3 +69,16 @@ export async function deleteFromCloudinary(publicId: string): Promise<void> {
   await cloudinary.uploader.destroy(publicId, { resource_type: "video" });
   console.log(`🗑️ Deleted "${publicId}" from Cloudinary.`);
 }
+
+/**
+ * Gets Cloudinary usage statistics
+ */
+export async function getCloudinaryUsage(): Promise<any> {
+  if (!isCloudinaryConfigured()) {
+    return { error: "Cloudinary is not configured" };
+  }
+
+  // Uses the Admin API which requires configuring cloudinary properly
+  const usage = await cloudinary.api.usage();
+  return usage;
+}

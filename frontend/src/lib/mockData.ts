@@ -9,6 +9,7 @@ export interface MockTrack {
   dateAdded: string;
   streamUrl?: string;
   isLiked?: boolean;
+  tags?: string[];
 }
 
 export interface MockMediaItem {

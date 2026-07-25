@@ -13,6 +13,9 @@ interface TrackRowProps {
   index: number;
   /** All tracks in the current list (for queue) */
   allTracks?: MockTrack[];
+  selectable?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: () => void;
 }
 
 function mockToPlayerTrack(t: MockTrack): PlayerTrack {
@@ -29,7 +32,7 @@ function mockToPlayerTrack(t: MockTrack): PlayerTrack {
   };
 }
 
-export default function TrackRow({ track, index, allTracks }: TrackRowProps) {
+export default function TrackRow({ track, index, allTracks, selectable, isSelected, onToggleSelect }: TrackRowProps) {
   const { currentTrack, isPlaying, playTrack, playQueue, togglePlay, addToQueue, pause } =
     usePlayer();
   const [isLiked, setIsLiked] = useState(track.isLiked || false);
@@ -50,11 +53,13 @@ export default function TrackRow({ track, index, allTracks }: TrackRowProps) {
   const [editTitle, setEditTitle] = useState(track.title);
   const [editArtist, setEditArtist] = useState(track.artist);
   const [editAlbum, setEditAlbum] = useState(track.album);
+  const [editTags, setEditTags] = useState(track.tags?.join(", ") || "");
   
   // Local display states (so UI updates immediately after save)
   const [displayTitle, setDisplayTitle] = useState(track.title);
   const [displayArtist, setDisplayArtist] = useState(track.artist);
   const [displayAlbum, setDisplayAlbum] = useState(track.album);
+  const [displayTags, setDisplayTags] = useState(track.tags || []);
 
   const router = useRouter();
 
@@ -63,10 +68,12 @@ export default function TrackRow({ track, index, allTracks }: TrackRowProps) {
     setDisplayTitle(track.title);
     setDisplayArtist(track.artist);
     setDisplayAlbum(track.album);
+    setDisplayTags(track.tags || []);
     setEditTitle(track.title);
     setEditArtist(track.artist);
     setEditAlbum(track.album);
-  }, [track.title, track.artist, track.album]);
+    setEditTags(track.tags?.join(", ") || "");
+  }, [track.title, track.artist, track.album, track.tags]);
 
   const isCurrentTrack = currentTrack?.id === track.id || currentTrack?.spotifyId === track.spotifyId;
   const isActive = isCurrentTrack && isPlaying;
@@ -113,9 +120,14 @@ export default function TrackRow({ track, index, allTracks }: TrackRowProps) {
         artist: editArtist,
         album: editAlbum,
       });
+      // Tags require a separate API call currently in backend (PATCH /tags)
+      const newTags = editTags.split(",").map(t => t.trim()).filter(Boolean);
+      await import("@/lib/api").then(api => api.updateTrackTags(track.id, newTags));
+      
       setDisplayTitle(editTitle);
       setDisplayArtist(editArtist);
       setDisplayAlbum(editAlbum);
+      setDisplayTags(newTags);
       setIsEditing(false);
       router.refresh();
     } catch (err) {
@@ -129,6 +141,7 @@ export default function TrackRow({ track, index, allTracks }: TrackRowProps) {
     setEditTitle(displayTitle);
     setEditArtist(displayArtist);
     setEditAlbum(displayAlbum);
+    setEditTags(displayTags.join(", "));
     setIsEditing(false);
   };
 
@@ -141,11 +154,23 @@ export default function TrackRow({ track, index, allTracks }: TrackRowProps) {
     >
       {/* Column 1: Index Number / Play Icon */}
       <div className="flex items-center justify-center font-medium">
-        <button
-          onClick={(e) => { e.stopPropagation(); handlePlay(); }}
-          className="text-white hover:scale-110 transition-transform"
-        >
-          {isActive ? (
+        {selectable ? (
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={(e) => {
+              e.stopPropagation();
+              onToggleSelect?.();
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="w-4 h-4 cursor-pointer"
+          />
+        ) : (
+          <button
+            onClick={(e) => { e.stopPropagation(); handlePlay(); }}
+            className="text-white hover:scale-110 transition-transform"
+          >
+            {isActive ? (
             <Pause className="w-4 h-4 fill-current text-[#1db954]" />
           ) : (
             <>
@@ -156,6 +181,7 @@ export default function TrackRow({ track, index, allTracks }: TrackRowProps) {
             </>
           )}
         </button>
+        )}
       </div>
 
       {/* Column 2: Cover Art, Title & Artist */}
@@ -220,9 +246,20 @@ export default function TrackRow({ track, index, allTracks }: TrackRowProps) {
             placeholder="Album"
           />
         ) : (
-          <span className="truncate hover:underline cursor-pointer">
-            {displayAlbum}
-          </span>
+          <div className="flex flex-col truncate">
+            <span className="truncate hover:underline cursor-pointer">
+              {displayAlbum}
+            </span>
+            {displayTags.length > 0 && (
+              <div className="flex gap-1 mt-1 truncate">
+                {displayTags.map(tag => (
+                  <span key={tag} className="text-[10px] bg-[#333] px-1.5 rounded text-gray-300 truncate">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </div>
 
@@ -233,6 +270,14 @@ export default function TrackRow({ track, index, allTracks }: TrackRowProps) {
       <div className="flex items-center justify-end gap-3 text-xs">
         {isEditing ? (
           <>
+            <input
+              type="text"
+              value={editTags}
+              onChange={(e) => setEditTags(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-[#282828] text-white text-xs px-2 py-1 rounded outline-none focus:ring-1 focus:ring-[#1db954] w-24 mr-2"
+              placeholder="Tags (comma-separated)"
+            />
             <button
               onClick={handleSaveEdit}
               className="text-[#1db954] hover:scale-110 transition-transform"

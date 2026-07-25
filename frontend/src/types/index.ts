@@ -9,6 +9,7 @@ export interface Track {
   duration: number;
   trackNumber: number;
   previewUrl?: string;
+  tags?: string[];
 }
 
 /** Represents a playlist from the Spotify API / our database */
@@ -35,6 +36,7 @@ export interface Song {
   duration: number;
   streamUrl: string;
   status: "pending" | "downloading" | "ready" | "failed";
+  tags?: string[];
 }
 
 /** Generic API response wrapper */

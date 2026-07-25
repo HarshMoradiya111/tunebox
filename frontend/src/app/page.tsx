@@ -6,6 +6,8 @@ import {
   fetchFeaturedPlaylists,
   fetchNewReleases,
   fetchRecentlyPlayed,
+  fetchMostPlayed,
+  fetchRecentlyAdded,
   ApiFeaturedPlaylist,
   ApiNewRelease,
 } from "@/lib/api";
@@ -54,17 +56,28 @@ export default async function Home() {
   let featuredItems: MockMediaItem[];
   let newReleaseItems: MockMediaItem[];
   let recentlyPlayedItems: MockMediaItem[] = [];
+  let mostPlayedItems: MockMediaItem[] = [];
+  let recentlyAddedItems: MockMediaItem[] = [];
 
   try {
-    const [featured, releases, recent] = await Promise.all([
+    const [featured, releases, recent, mostPlayed, recentlyAdded] = await Promise.all([
       fetchFeaturedPlaylists(),
       fetchNewReleases(),
       fetchRecentlyPlayed().catch(() => []),
+      fetchMostPlayed().catch(() => []),
+      fetchRecentlyAdded().catch(() => []),
     ]);
     featuredItems = featured.map(playlistToMediaItem);
     newReleaseItems = releases.map(releaseToMediaItem);
+    
     if (recent && Array.isArray(recent)) {
       recentlyPlayedItems = recent.map(playerTrackToMediaItem);
+    }
+    if (mostPlayed && Array.isArray(mostPlayed)) {
+      mostPlayedItems = mostPlayed.map(playerTrackToMediaItem);
+    }
+    if (recentlyAdded && Array.isArray(recentlyAdded)) {
+      recentlyAddedItems = recentlyAdded.map(playerTrackToMediaItem);
     }
   } catch {
     // Fallback to mock data when backend is not running
@@ -98,13 +111,15 @@ export default async function Home() {
               className="flex items-center gap-3 bg-[#ffffff10] hover:bg-[#ffffff20] transition-colors rounded-md overflow-hidden group cursor-pointer pr-4"
             >
               <div className="relative w-16 h-16 shrink-0 bg-[#242424]">
-                <Image
-                  src={item.image}
-                  alt={item.title}
-                  fill
-                  sizes="64px"
-                  className="object-cover"
-                />
+                {item.image && (
+                  <Image
+                    src={item.image}
+                    alt={item.title}
+                    fill
+                    sizes="64px"
+                    className="object-cover"
+                  />
+                )}
               </div>
               <span className="font-bold text-sm text-white truncate flex-1">
                 {item.title}
@@ -120,6 +135,15 @@ export default async function Home() {
       {/* Recently Played Row (if any) */}
       {recentlyPlayedItems.length > 0 && (
         <CarouselRow title="Recently Played" items={recentlyPlayedItems} />
+      )}
+
+      {/* Made For You (Smart Playlists) */}
+      {mostPlayedItems.length > 0 && (
+        <CarouselRow title="Most Played (Made For You)" items={mostPlayedItems} />
+      )}
+      
+      {recentlyAddedItems.length > 0 && (
+        <CarouselRow title="Recently Added" items={recentlyAddedItems} />
       )}
 
       {/* Featured Playlists Row */}

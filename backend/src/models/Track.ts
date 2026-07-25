@@ -13,6 +13,7 @@ export interface ITrack extends Document {
   audioFileURL?: string;
   source?: string;
   uploadedAt?: Date;
+  tags?: string[];
 }
 
 const trackSchema = new Schema<ITrack>(
@@ -29,6 +30,7 @@ const trackSchema = new Schema<ITrack>(
     audioFileURL: { type: String },
     source: { type: String, default: "search" },
     uploadedAt: { type: Date, default: Date.now },
+    tags: { type: [String], default: [] },
   },
   { timestamps: true }
 );

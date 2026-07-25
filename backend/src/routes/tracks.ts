@@ -4,7 +4,10 @@ import {
   getLikedTracks,
   recordPlay,
   getRecentlyPlayed,
-  searchLocalLibrary
+  searchLocalLibrary,
+  updateTags,
+  batchDelete,
+  batchTags
 } from "../controllers/trackController";
 
 const router = Router();
@@ -16,5 +19,9 @@ router.post("/:id/play", recordPlay);
 router.get("/recently-played", getRecentlyPlayed);
 
 router.get("/library/search", searchLocalLibrary);
+
+router.patch("/:id/tags", updateTags);
+router.post("/batch-delete", batchDelete);
+router.post("/batch-tags", batchTags);
 
 export default router;
