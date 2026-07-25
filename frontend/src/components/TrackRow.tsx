@@ -169,7 +169,7 @@ function TrackRow({ track, index, allTracks, selectable, isSelected, onToggleSel
       role="button"
       tabIndex={0}
       aria-label={`Play ${displayTitle}`}
-      className={`grid grid-cols-[16px_1fr_auto] md:grid-cols-[16px_4fr_3fr_2fr_minmax(100px,1fr)] items-center gap-4 px-2 md:px-4 py-2.5 rounded-md hover:bg-[#ffffff10] text-[#b3b3b3] text-sm group transition-colors select-none outline-none focus-visible:ring-2 focus-visible:ring-[#1db954] focus-visible:ring-inset ${isEditing ? "bg-[#ffffff10]" : "cursor-pointer"}`}
+      className={`grid grid-cols-[16px_1fr_auto] md:grid-cols-[16px_4fr_3fr_2fr_minmax(100px,1fr)] items-center gap-2 md:gap-4 px-2 md:px-4 py-2.5 rounded-md hover:bg-[#ffffff10] text-[#b3b3b3] text-sm group transition-colors select-none outline-none focus-visible:ring-2 focus-visible:ring-[#1db954] focus-visible:ring-inset ${isEditing ? "bg-[#ffffff10]" : "cursor-pointer"}`}
       onDoubleClick={handlePlay}
       onKeyDown={(e) => {
         if ((e.key === "Enter" || e.key === " ") && e.target === e.currentTarget) {
@@ -355,8 +355,10 @@ function TrackRow({ track, index, allTracks, selectable, isSelected, onToggleSel
             <button
               onClick={handleToggleLike}
               aria-label={isLiked ? "Remove from liked songs" : "Save to your liked songs"}
-              className={`opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity ${
-                isLiked ? "opacity-100 text-[#1db954]" : "text-[#b3b3b3] hover:text-white"
+              className={`transition-opacity ${
+                isLiked 
+                  ? "opacity-100 text-[#1db954]" 
+                  : "opacity-100 md:opacity-0 md:group-hover:opacity-100 text-[#b3b3b3] hover:text-white"
               }`}
             >
               <Heart className={`w-4 h-4 ${isLiked ? "fill-current" : ""}`} />
@@ -391,7 +393,7 @@ function TrackRow({ track, index, allTracks, selectable, isSelected, onToggleSel
                   setIsMenuOpen(!isMenuOpen);
                 }} 
                 aria-label="More options" 
-                className={`transition-opacity ${isMenuOpen ? "opacity-100 text-white" : "opacity-0 group-hover:opacity-100 text-[#b3b3b3] hover:text-white"}`}
+                className={`transition-opacity ${isMenuOpen ? "opacity-100 text-white" : "opacity-100 md:opacity-0 md:group-hover:opacity-100 text-[#b3b3b3] hover:text-white"}`}
               >
                 <MoreHorizontal className="w-4 h-4" />
               </button>

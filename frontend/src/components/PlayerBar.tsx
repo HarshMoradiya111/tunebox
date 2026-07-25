@@ -189,7 +189,14 @@ export default function PlayerBar() {
         : Volume2;
 
   return (
-    <footer className="h-16 md:h-[90px] bg-black border-t border-[#282828] px-2 md:px-4 flex items-center justify-between z-50 select-none pb-[env(safe-area-inset-bottom)]">
+    <footer className="h-16 md:h-[90px] bg-black border-t border-[#282828] px-2 md:px-4 flex items-center justify-between z-50 select-none pb-[env(safe-area-inset-bottom)] relative">
+      {/* Mobile Top Progress Line */}
+      {duration > 0 && (
+        <div className="md:hidden absolute top-0 left-0 right-0 h-[2px] bg-[#282828]">
+          <div className="h-full bg-[#1db954] transition-all duration-150" style={{ width: `${progress}%` }} />
+        </div>
+      )}
+
       {/* Screen Reader Announcements */}
       <div className="sr-only" aria-live="polite">
         {currentTrack ? `Now playing: ${currentTrack.title} by ${currentTrack.artist}` : 'No track selected'}

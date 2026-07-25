@@ -47,10 +47,10 @@ export default async function AlbumPage({ params }: AlbumPageProps) {
   const totalMinutes = Math.round(totalDuration / 60);
 
   return (
-    <div className="flex flex-col gap-6 -mx-6 -mt-6">
+    <div className="flex flex-col gap-6 -mx-4 -mt-4 md:-mx-6 md:-mt-6">
       {/* Hero Banner Section */}
-      <div className="bg-gradient-to-b from-purple-900 via-purple-950 to-[#121212] p-8 pt-12 flex flex-col sm:flex-row items-end gap-6">
-        <div className="relative w-48 h-48 sm:w-56 sm:h-56 rounded-md shadow-2xl overflow-hidden bg-[#242424] shrink-0">
+      <div className="bg-gradient-to-b from-purple-900 via-purple-950 to-[#121212] p-4 sm:p-8 pt-10 sm:pt-12 flex flex-col sm:flex-row items-center sm:items-end text-center sm:text-left gap-4 sm:gap-6">
+        <div className="relative w-40 h-40 sm:w-56 sm:h-56 rounded-md shadow-2xl overflow-hidden bg-[#242424] shrink-0">
           <Image
             src={coverImage}
             alt={albumTitle}
@@ -59,14 +59,14 @@ export default async function AlbumPage({ params }: AlbumPageProps) {
           />
         </div>
 
-        <div className="flex flex-col gap-3 min-w-0">
+        <div className="flex flex-col gap-2 sm:gap-3 min-w-0">
           <span className="text-xs uppercase tracking-wider font-bold text-white">
             Album
           </span>
-          <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tight line-clamp-2">
+          <h1 className="text-3xl sm:text-6xl font-black text-white tracking-tight line-clamp-2">
             {albumTitle || "Album"}
           </h1>
-          <div className="flex items-center gap-2 text-xs text-white font-medium">
+          <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-white font-medium flex-wrap">
             <span className="font-bold hover:underline cursor-pointer">{artist}</span>
             <span>•</span>
             <span>{tracks.length} songs,</span>
@@ -89,8 +89,8 @@ export default async function AlbumPage({ params }: AlbumPageProps) {
       </div>
 
       {/* Track Table Header */}
-      <div className="px-6">
-        <div className="grid grid-cols-[16px_4fr_3fr_2fr_minmax(100px,1fr)] items-center gap-4 px-4 py-2 text-[#b3b3b3] text-xs font-medium border-b border-[#282828] uppercase tracking-wider">
+      <div className="px-4 md:px-6">
+        <div className="grid grid-cols-[16px_1fr_auto] md:grid-cols-[16px_4fr_3fr_2fr_minmax(100px,1fr)] items-center gap-2 md:gap-4 px-2 md:px-4 py-2 text-[#b3b3b3] text-xs font-medium border-b border-[#282828] uppercase tracking-wider">
           <span>#</span>
           <span>Title</span>
           <span className="hidden md:inline">Album</span>

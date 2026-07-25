@@ -76,14 +76,14 @@ export default function LikedSongsPage() {
   return (
     <div className="flex flex-col h-full bg-gradient-to-b from-[#282828] to-[#121212] overflow-y-auto">
       {/* Header */}
-      <div className="flex items-end gap-6 p-6 pt-16 mt-8">
-        <div className="w-48 h-48 bg-gradient-to-br from-indigo-600 to-purple-800 shadow-2xl flex items-center justify-center rounded">
-          <Heart className="w-24 h-24 text-white fill-white" />
+      <div className="flex flex-col sm:flex-row items-center sm:items-end text-center sm:text-left gap-4 sm:gap-6 p-4 sm:p-6 pt-10 sm:pt-16 mt-2 sm:mt-8">
+        <div className="w-36 h-36 sm:w-48 sm:h-48 bg-gradient-to-br from-indigo-600 to-purple-800 shadow-2xl flex items-center justify-center rounded shrink-0">
+          <Heart className="w-16 h-16 sm:w-24 sm:h-24 text-white fill-white" />
         </div>
-        <div className="flex flex-col gap-2">
-          <span className="text-sm font-bold text-white uppercase">Playlist</span>
-          <h1 className="text-5xl md:text-7xl font-bold text-white tracking-tighter">Liked Songs</h1>
-          <p className="text-[#b3b3b3] text-sm mt-2 font-medium">
+        <div className="flex flex-col gap-2 min-w-0">
+          <span className="text-xs sm:text-sm font-bold text-white uppercase">Playlist</span>
+          <h1 className="text-3xl sm:text-6xl font-bold text-white tracking-tighter">Liked Songs</h1>
+          <p className="text-[#b3b3b3] text-xs sm:text-sm mt-1 font-medium">
             Your favorite tracks. {tracks.length} {tracks.length === 1 ? 'song' : 'songs'}.
           </p>
         </div>

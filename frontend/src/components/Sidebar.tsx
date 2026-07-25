@@ -89,6 +89,7 @@ export default function Sidebar() {
     { name: "Home", href: "/", icon: Home },
     { name: "Search", href: "/search", icon: Search },
     { name: "Your Library", href: "/liked", icon: Library },
+    { name: "Upload", href: "/upload", icon: Upload },
   ];
 
   return (

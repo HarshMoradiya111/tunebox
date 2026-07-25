@@ -137,7 +137,7 @@ export default async function Home() {
                 <span className="font-bold text-sm text-white truncate flex-1">
                   {item.title}
                 </span>
-                <button className="w-10 h-10 rounded-full bg-[#1db954] hover:scale-105 flex items-center justify-center text-black shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-200 shrink-0">
+                <button className="w-10 h-10 rounded-full bg-[#1db954] hover:scale-105 flex items-center justify-center text-black shadow-lg opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-200 shrink-0">
                   <Play className="w-4 h-4 fill-current translate-x-0.5" />
                 </button>
               </Link>

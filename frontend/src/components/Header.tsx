@@ -18,9 +18,9 @@ export default function Header() {
   };
 
   return (
-    <header className="h-16 px-6 bg-[#121212]/90 backdrop-blur-md sticky top-0 z-40 flex items-center justify-between gap-4">
+    <header className="h-16 px-4 md:px-6 bg-[#121212]/90 backdrop-blur-md sticky top-0 z-40 flex items-center justify-between gap-2 md:gap-4">
       {/* Navigation Buttons */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1 md:gap-2 shrink-0">
         <button
           onClick={() => router.back()}
           aria-label="Go back"
@@ -32,7 +32,7 @@ export default function Header() {
         <button
           onClick={() => router.forward()}
           aria-label="Go forward"
-          className="w-8 h-8 rounded-full bg-black/70 hover:bg-black text-white flex items-center justify-center transition-colors"
+          className="w-8 h-8 rounded-full bg-black/70 hover:bg-black text-white flex items-center justify-center transition-colors hidden sm:flex"
           title="Go forward"
         >
           <ChevronRight className="w-5 h-5" />
@@ -56,12 +56,12 @@ export default function Header() {
       )}
 
       {/* User Profile Pill */}
-      <div className="flex items-center gap-3">
-        <button aria-label="User profile" className="flex items-center gap-2 bg-black/70 hover:bg-[#282828] text-white rounded-full p-1 pr-3 transition-colors text-sm font-medium">
+      <div className="flex items-center gap-3 shrink-0">
+        <button aria-label="User profile" className="flex items-center gap-2 bg-black/70 hover:bg-[#282828] text-white rounded-full p-1 sm:pr-3 transition-colors text-sm font-medium">
           <div aria-hidden="true" className="w-7 h-7 rounded-full bg-[#282828] flex items-center justify-center text-white">
             <User className="w-4 h-4" />
           </div>
-          <span>Harsh</span>
+          <span className="hidden sm:inline">Harsh</span>
         </button>
       </div>
     </header>

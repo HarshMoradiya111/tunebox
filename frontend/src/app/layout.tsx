@@ -31,12 +31,12 @@ export default function RootLayout({
         <PlayerProvider>
           <UploadProvider>
             {/* App Content Area (Sidebar + Main View) */}
-            <div className="flex-1 flex overflow-hidden p-2 gap-2">
+            <div className="flex-1 flex overflow-hidden p-0 md:p-2 gap-0 md:gap-2">
               <Sidebar />
 
-              <main className="flex-1 bg-[#121212] rounded-lg overflow-y-auto flex flex-col relative">
+              <main className="flex-1 bg-[#121212] rounded-none md:rounded-lg overflow-y-auto flex flex-col relative">
                 <Header />
-                <div className="flex-1 p-6 pb-12">{children}</div>
+                <div className="flex-1 p-4 md:p-6 pb-36 md:pb-12">{children}</div>
               </main>
             </div>
 

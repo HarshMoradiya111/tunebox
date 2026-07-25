@@ -61,10 +61,10 @@ export default async function PlaylistPage({ params }: PlaylistPageProps) {
   const totalMinutes = Math.round(totalDuration / 60);
 
   return (
-    <div className="flex flex-col gap-6 -mx-6 -mt-6">
+    <div className="flex flex-col gap-6 -mx-4 -mt-4 md:-mx-6 md:-mt-6">
       {/* Hero Banner Section */}
-      <div className="bg-gradient-to-b from-indigo-900 via-indigo-950 to-[#121212] p-8 pt-12 flex flex-col sm:flex-row items-end gap-6">
-        <div className="relative w-48 h-48 sm:w-56 sm:h-56 rounded-md shadow-2xl overflow-hidden bg-[#242424] shrink-0">
+      <div className="bg-gradient-to-b from-indigo-900 via-indigo-950 to-[#121212] p-4 sm:p-8 pt-10 sm:pt-12 flex flex-col sm:flex-row items-center sm:items-end text-center sm:text-left gap-4 sm:gap-6">
+        <div className="relative w-40 h-40 sm:w-56 sm:h-56 rounded-md shadow-2xl overflow-hidden bg-[#242424] shrink-0">
           <Image
             src={coverImage}
             alt={playlistName}
@@ -73,15 +73,15 @@ export default async function PlaylistPage({ params }: PlaylistPageProps) {
           />
         </div>
 
-        <div className="flex flex-col gap-3 min-w-0">
+        <div className="flex flex-col gap-2 sm:gap-3 min-w-0">
           <span className="text-xs uppercase tracking-wider font-bold text-white">
             Playlist
           </span>
-          <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tight line-clamp-2">
+          <h1 className="text-3xl sm:text-6xl font-black text-white tracking-tight line-clamp-2">
             {playlistName}
           </h1>
-          <p className="text-sm text-[#b3b3b3]">{description}</p>
-          <div className="flex items-center gap-2 text-xs text-white font-medium">
+          <p className="text-xs sm:text-sm text-[#b3b3b3]">{description}</p>
+          <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-white font-medium flex-wrap">
             <span className="font-bold">{owner}</span>
             <span>•</span>
             <span>{trackCount} songs,</span>

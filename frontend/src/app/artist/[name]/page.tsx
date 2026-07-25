@@ -95,16 +95,14 @@ export default function ArtistPage({ params }: { params: Promise<{ name: string 
         <div className="absolute inset-0 z-0 opacity-40">
           <Image src={coverImage} alt={artistName} fill className="object-cover blur-xl" />
         </div>
-        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-end gap-6">
-          <div className="w-40 h-40 md:w-56 md:h-56 rounded-full shadow-2xl overflow-hidden relative border-4 border-black/20 shrink-0">
-            <Image src={coverImage} alt={artistName} fill sizes="(max-width: 768px) 160px, 224px" className="object-cover" />
+        <div className="relative z-10 flex flex-col sm:flex-row items-center sm:items-end text-center sm:text-left gap-4 sm:gap-6">
+          <div className="w-36 h-36 sm:w-56 sm:h-56 rounded-full shadow-2xl overflow-hidden relative border-4 border-black/20 shrink-0">
+            <Image src={coverImage} alt={artistName} fill sizes="(max-width: 768px) 144px, 224px" className="object-cover" />
           </div>
-          <div className="flex flex-col gap-2">
-            <span className="text-sm font-bold text-white uppercase tracking-widest drop-shadow-md">Artist</span>
-            <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter drop-shadow-lg truncate">{artistName}</h1>
-            <p className="text-white text-sm font-medium drop-shadow-md">
-              {tracks.length} {tracks.length === 1 ? "track" : "tracks"}
-            </p>
+          <div className="flex flex-col gap-2 min-w-0">
+            <span className="text-xs uppercase font-bold text-white tracking-wider">Verified Artist</span>
+            <h1 className="text-3xl sm:text-6xl font-black text-white tracking-tight line-clamp-1">{artistName}</h1>
+            <p className="text-xs sm:text-sm text-[#b3b3b3]">{tracks.length} tracks</p>
           </div>
         </div>
       </div>
