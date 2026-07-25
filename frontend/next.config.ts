@@ -43,6 +43,14 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "seed-mix-image.spotifycdn.com",
       },
+      {
+        protocol: "https",
+        hostname: "misc.scdn.co",
+      },
+      {
+        protocol: "https",
+        hostname: "placehold.co",
+      },
     ],
   },
 };
