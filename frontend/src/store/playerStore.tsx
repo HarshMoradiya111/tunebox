@@ -445,13 +445,43 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     setIsPlaying(true);
   }, []);
 
-  const nextTrack = useCallback(() => {
+  const nextTrack = useCallback(async () => {
     if (queue.length === 0) return;
     let nextIdx = queueIndex + 1;
     if (nextIdx >= queue.length) {
       if (repeatMode === "all") {
         nextIdx = 0;
       } else {
+        // Auto-Next Song Radio Recommendation Engine
+        try {
+          const current = queue[queueIndex];
+          if (current) {
+            const res = await fetch(`${API_BASE}/tracks/recommendations?artist=${encodeURIComponent(current.artist)}&trackId=${current.id}`);
+            if (res.ok) {
+              const data = await res.json();
+              if (data.data && data.data.length > 0) {
+                const recTracks: PlayerTrack[] = data.data.map((t: any) => ({
+                  id: t._id || t.id,
+                  spotifyId: t.spotifyTrackId || t.spotifyId,
+                  title: t.title,
+                  artist: t.artist,
+                  album: t.album || "Single",
+                  albumArt: t.albumArtUrl || t.albumArt || "",
+                  duration: t.duration || 0,
+                  streamUrl: t.streamUrl,
+                  isLiked: t.isLiked,
+                }));
+                
+                setQueue((prev) => [...prev, ...recTracks]);
+                setQueueIndex(nextIdx);
+                loadTrack(recTracks[0], true);
+                return;
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("Could not fetch recommendations for song radio:", e);
+        }
         return;
       }
     }

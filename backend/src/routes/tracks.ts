@@ -7,11 +7,13 @@ import {
   searchLocalLibrary,
   updateTags,
   batchDelete,
-  batchTags
+  batchTags,
+  getRecommendations
 } from "../controllers/trackController";
 
 const router = Router();
 
+router.get("/recommendations", getRecommendations);
 router.patch("/:id/like", toggleLike);
 router.get("/liked", getLikedTracks);
 

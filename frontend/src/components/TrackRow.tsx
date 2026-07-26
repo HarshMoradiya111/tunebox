@@ -2,13 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Play, Pause, Heart, MoreHorizontal, ListPlus, Trash2, Pencil, Check, X, PlaySquare, Clock } from "lucide-react";
+import { Play, Pause, Heart, MoreHorizontal, ListPlus, Trash2, Pencil, Check, X, PlaySquare, Clock, Share2 } from "lucide-react";
 import { useState, useEffect, useRef, memo } from "react";
 import { TrackItem } from "@/types";
 import { usePlayer, PlayerTrack } from "@/store/playerStore";
 import { deleteUploadedTrack, updateUploadedTrack } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import AddToPlaylistModal from "./AddToPlaylistModal";
+import ShareModal from "./ShareModal";
 
 interface TrackRowProps {
   track: TrackItem;
@@ -38,6 +39,7 @@ function TrackRow({ track, index, allTracks, selectable, isSelected, onToggleSel
     usePlayer();
   const [isLiked, setIsLiked] = useState(track.isLiked || false);
   const [isDeleted, setIsDeleted] = useState(false);
+  const [isShareOpen, setIsShareOpen] = useState(false);
   
   const handleToggleLike = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -409,6 +411,16 @@ function TrackRow({ track, index, allTracks, selectable, isSelected, onToggleSel
                   >
                     Add to playlist
                   </button>
+                  <button 
+                    className="w-full text-left px-4 py-2 hover:bg-[#3e3e3e] text-white flex items-center gap-2"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsMenuOpen(false);
+                      setIsShareOpen(true);
+                    }}
+                  >
+                    <Share2 className="w-4 h-4" /> Share track
+                  </button>
                 </div>
               )}
             </div>
@@ -422,6 +434,13 @@ function TrackRow({ track, index, allTracks, selectable, isSelected, onToggleSel
           onClose={() => setIsPlaylistModalOpen(false)} 
         />
       )}
+
+      <ShareModal
+        isOpen={isShareOpen}
+        onClose={() => setIsShareOpen(false)}
+        title={`${track.title} - ${track.artist}`}
+        shareUrl={typeof window !== "undefined" ? `${window.location.origin}/album/${encodeURIComponent(track.album || track.title)}` : ""}
+      />
     </div>
   );
 }

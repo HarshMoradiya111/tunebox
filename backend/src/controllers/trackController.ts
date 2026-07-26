@@ -188,3 +188,34 @@ export const batchTags = async (req: Request, res: Response): Promise<any> => {
     res.status(500).json({ success: false, message: "Failed to batch tag tracks" });
   }
 };
+
+// Get Recommendations (Song Radio)
+export const getRecommendations = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { artist, trackId } = req.query;
+    let query: any = {};
+    
+    if (artist) {
+      query.artist = new RegExp(String(artist).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "i");
+    }
+    if (trackId) {
+      query._id = { $ne: trackId };
+    }
+
+    let recommended = await Song.find(query).limit(5);
+
+    // Fill with extra popular tracks if needed
+    if (recommended.length < 5) {
+      const existingIds = recommended.map(r => r._id);
+      if (trackId) existingIds.push(trackId as any);
+      
+      const extra = await Song.find({ _id: { $nin: existingIds } }).limit(5 - recommended.length);
+      recommended = [...recommended, ...extra];
+    }
+
+    res.json({ success: true, data: recommended });
+  } catch (error) {
+    console.error("Get recommendations error:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch recommendations" });
+  }
+};

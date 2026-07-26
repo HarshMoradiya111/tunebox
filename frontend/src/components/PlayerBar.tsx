@@ -20,7 +20,8 @@ import {
   Timer,
   Maximize2,
   Ear,
-  FolderPlus
+  FolderPlus,
+  Mic
 } from "lucide-react";
 import { usePlayer } from "@/store/playerStore";
 import { useState, useEffect } from "react";
@@ -30,6 +31,7 @@ import { useFocusTrap } from "@/hooks/useFocusTrap";
 const QueuePanel = dynamic(() => import("./QueuePanel"), { ssr: false });
 const NowPlayingView = dynamic(() => import("./NowPlayingView"), { ssr: false });
 const AddToPlaylistModal = dynamic(() => import("./AddToPlaylistModal"), { ssr: false });
+const LyricsModal = dynamic(() => import("./LyricsModal"), { ssr: false });
 
 function formatTime(seconds: number): string {
   if (!seconds || isNaN(seconds)) return "0:00";
@@ -76,6 +78,7 @@ export default function PlayerBar() {
   const [isSleepMenuOpen, setIsSleepMenuOpen] = useState(false);
   const sleepFocusRef = useFocusTrap(isSleepMenuOpen, () => setIsSleepMenuOpen(false));
   const [isAddToPlaylistOpen, setIsAddToPlaylistOpen] = useState(false);
+  const [isLyricsOpen, setIsLyricsOpen] = useState(false);
 
   useEffect(() => {
     setIsLiked(currentTrack?.isLiked || false);
@@ -463,6 +466,16 @@ export default function PlayerBar() {
           )}
         </div>
 
+        {/* Synced Karaoke Lyrics */}
+        <button
+          onClick={() => setIsLyricsOpen(!isLyricsOpen)}
+          aria-label="Synced Karaoke Lyrics"
+          title="Synced Karaoke Lyrics"
+          className={`transition-colors p-1 ${isLyricsOpen ? "text-[#1db954]" : "hover:text-white"}`}
+        >
+          <Mic className="w-4 h-4" />
+        </button>
+
         {/* Queue */}
         <button
           onClick={() => setIsQueueOpen(!isQueueOpen)}
@@ -508,6 +521,7 @@ export default function PlayerBar() {
 
       <QueuePanel isOpen={isQueueOpen} onClose={() => setIsQueueOpen(false)} />
       <NowPlayingView isOpen={isNowPlayingOpen} onClose={() => setIsNowPlayingOpen(false)} />
+      <LyricsModal isOpen={isLyricsOpen} onClose={() => setIsLyricsOpen(false)} currentTrack={currentTrack} currentTime={currentTime} />
       {isAddToPlaylistOpen && currentTrack && (
         <AddToPlaylistModal trackId={currentTrack.id} onClose={() => setIsAddToPlaylistOpen(false)} />
       )}
