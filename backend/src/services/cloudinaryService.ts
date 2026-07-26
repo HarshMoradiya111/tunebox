@@ -39,15 +39,10 @@ export async function uploadAudioToCloudinary(
 
   if (compressInCloud) {
     uploadOptions.eager = [{ audio_codec: "mp3", bit_rate: "160k" }];
-    uploadOptions.eager_async = false;
+    uploadOptions.eager_async = true; // Async cloud encoding = non-blocking instant response!
   }
 
   const result = await cloudinary.uploader.upload(filePath, uploadOptions);
-
-  if (compressInCloud && result.eager && result.eager[0] && result.eager[0].secure_url) {
-    console.log(`☁️ Cloudinary cloud compression applied: ${result.eager[0].secure_url}`);
-    return result.eager[0].secure_url;
-  }
 
   return result.secure_url;
 }

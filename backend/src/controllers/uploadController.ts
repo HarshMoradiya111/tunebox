@@ -60,39 +60,16 @@ export const uploadTrack = async (req: Request, res: Response): Promise<any> => 
     const uniqueId = `local-${Date.now()}`;
     const coverUniqueId = `cover-${Date.now()}`;
 
-    // Audio Compression
-    let finalAudioPath = file.path;
-    let finalFileSize = file.size;
-    let ext = path.extname(file.originalname).replace(".", "") || "mp3";
-    let usedCloudCompression = false;
+    const ext = path.extname(file.originalname).replace(".", "") || "mp3";
+    const needsCloudCompression = file.size > 5 * 1024 * 1024;
 
-    if (file.size > 5 * 1024 * 1024) {
-      try {
-        compressedAudioPath = `${file.path}_compressed.mp3`;
-        console.log(`Compressing ${file.path} locally to ${compressedAudioPath}...`);
-        await compressAudio(file.path, compressedAudioPath, "160k");
-        
-        finalAudioPath = compressedAudioPath;
-        const stats = fs.statSync(compressedAudioPath);
-        finalFileSize = stats.size;
-        ext = "mp3"; // Since we transcoded to mp3
-        console.log(`Local compression successful. Original size: ${file.size}, New size: ${finalFileSize}`);
-      } catch (err) {
-        console.warn("Local compression failed (common in cloud servers). Falling back to Cloudinary cloud compression:", err);
-        finalAudioPath = file.path;
-        finalFileSize = file.size;
-        ext = "mp3"; // Cloudinary will transcode to mp3
-        usedCloudCompression = true;
-      }
-    }
-
-    // Upload to Cloudinary (with eager cloud compression if local compression failed on large files)
-    const secureUrl = await uploadAudioToCloudinary(finalAudioPath, uniqueId, usedCloudCompression);
-    let albumArtUrl = metadata.albumArt || "";
-
-    if (coverFile) {
-      albumArtUrl = await uploadImageToCloudinary(coverFile.path, coverUniqueId);
-    }
+    // Parallel upload audio & cover art directly to Cloudinary
+    const [secureUrl, albumArtUrl] = await Promise.all([
+      uploadAudioToCloudinary(file.path, uniqueId, needsCloudCompression),
+      coverFile
+        ? uploadImageToCloudinary(coverFile.path, coverUniqueId)
+        : Promise.resolve(metadata.albumArt || ""),
+    ]);
 
     // Save to MongoDB
     const newSong = new Song({
@@ -104,7 +81,7 @@ export const uploadTrack = async (req: Request, res: Response): Promise<any> => 
       albumArt: albumArtUrl,
       filePath: secureUrl,
       streamUrl: secureUrl,
-      fileSize: finalFileSize,
+      fileSize: file.size,
       format: ext,
       status: "ready",
       cloudinaryPublicId: uniqueId,

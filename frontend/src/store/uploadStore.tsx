@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, type ReactNode } from "react";
 import { parseBlob } from "music-metadata-browser";
 import axios from "axios";
-import { mapSongToPlayerTrack } from "@/lib/api";
+import { mapSongToPlayerTrack, fetchUploadedTracks } from "@/lib/api";
 
 export interface LocalTrack {
   id: string;
@@ -78,13 +78,40 @@ export function UploadProvider({ children }: { children: ReactNode }) {
   };
 
   const uploadAll = async (addToQueue: (track: any) => void) => {
-    // We get the current list of pending tracks by looking at the state ref,
-    // or just rely on the current state. To avoid closure staleness across loops,
-    // we can use a ref or just loop over the captured `tracks`.
-    // We will just loop over the captured `tracks` for simplicity.
-    const pendingTracks = tracks.filter(t => t.status === "pending" || t.status === "error");
+    // 1. Fetch existing library tracks to pre-check duplicates instantly (0ms)
+    let existingTracks: any[] = [];
+    try {
+      existingTracks = await fetchUploadedTracks();
+    } catch (e) {
+      console.warn("Could not fetch existing tracks for duplicate pre-check:", e);
+    }
 
-    const CONCURRENCY_LIMIT = 4;
+    const existingMap = new Set(
+      existingTracks.map((t) => `${(t.title || "").toLowerCase().trim()}|${(t.artist || "").toLowerCase().trim()}`)
+    );
+
+    // Pre-mark existing duplicates as 'skipped' instantly without uploading files over network
+    setTracks((prev) =>
+      prev.map((t) => {
+        if (t.status === "pending" || t.status === "error") {
+          const key = `${(t.title || "").toLowerCase().trim()}|${(t.artist || "").toLowerCase().trim()}`;
+          if (existingMap.has(key)) {
+            return { ...t, status: "skipped", progress: 100 };
+          }
+        }
+        return t;
+      })
+    );
+
+    // Give state a moment to update skipped items
+    await new Promise((r) => setTimeout(r, 50));
+
+    const pendingTracks = tracks.filter(t => (t.status === "pending" || t.status === "error") && 
+      !existingMap.has(`${(t.title || "").toLowerCase().trim()}|${(t.artist || "").toLowerCase().trim()}`));
+
+    if (pendingTracks.length === 0) return;
+
+    const CONCURRENCY_LIMIT = 6;
     let index = 0;
 
     const uploadNext = async (): Promise<void> => {
@@ -112,7 +139,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
           },
           onUploadProgress: (progressEvent) => {
             if (progressEvent.total) {
-              const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+              const percentCompleted = Math.min(99, Math.round((progressEvent.loaded * 100) / progressEvent.total));
               updateTrackField(track.id, "progress", percentCompleted);
             }
           }
@@ -122,13 +149,14 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       try {
         const response = await performUpload();
         
+        updateTrackField(track.id, "progress", 100);
         updateTrackField(track.id, "status", "success");
         if (response.data) {
           addToQueue(mapSongToPlayerTrack(response.data));
         }
       } catch (err: any) {
         if (err.response?.status === 409) {
-          // Silently skip duplicate track as requested by user
+          updateTrackField(track.id, "progress", 100);
           updateTrackField(track.id, "status", "skipped");
         } else {
           console.error("Upload failed for", track.title, err);
