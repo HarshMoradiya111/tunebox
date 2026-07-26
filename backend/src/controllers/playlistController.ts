@@ -267,10 +267,10 @@ export async function removeTrackFromPlaylist(req: Request, res: Response, next:
 export async function deleteUserPlaylist(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const { id } = req.params;
-    const playlist = await Playlist.findOneAndDelete({ _id: id, isUserCreated: true });
+    const playlist = await Playlist.findOneAndDelete({ _id: id });
     
     if (!playlist) {
-      res.status(404).json({ success: false, error: "User playlist not found" });
+      res.status(404).json({ success: false, error: "Playlist not found" });
       return;
     }
 

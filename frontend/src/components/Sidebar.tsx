@@ -18,9 +18,10 @@ import {
   ChevronDown,
   ChevronRight,
   AlertCircle,
+  Trash2,
 } from "lucide-react";
 import { usePlayer } from "@/store/playerStore";
-import { fetchAutoPlaylists, getUserPlaylists } from "@/lib/api";
+import { fetchAutoPlaylists, getUserPlaylists, deleteUserPlaylist } from "@/lib/api";
 import { CreatePlaylistModal } from "./CreatePlaylistModal";
 import { ImportPlaylistModal } from "./ImportPlaylistModal";
 
@@ -33,6 +34,25 @@ export default function Sidebar() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [showAutoPlaylists, setShowAutoPlaylists] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const handleDeletePlaylist = async (e: React.MouseEvent, id: string, name: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (window.confirm(`Are you sure you want to delete "${name}"? This action cannot be undone.`)) {
+      try {
+        await deleteUserPlaylist(id);
+        if (pathname === `/playlist/${id}`) {
+          window.location.href = "/";
+        } else {
+          fetchAutoPlaylists().then((data) => setAutoPlaylists(data)).catch(() => {});
+          getUserPlaylists().then((data) => setUserPlaylists(data)).catch(() => {});
+          window.dispatchEvent(new Event("saved_playlists_changed"));
+        }
+      } catch (err) {
+        console.error("Failed to delete playlist:", err);
+      }
+    }
+  };
 
   const [savedPlaylists, setSavedPlaylists] = useState<any[]>([]);
   const [userPlaylists, setUserPlaylists] = useState<any[]>([]);
@@ -261,9 +281,18 @@ export default function Sidebar() {
                             </div>
                             <span className="truncate text-xs font-medium">{pl.name}</span>
                           </div>
-                          <span className="text-[9px] uppercase tracking-wider font-bold bg-[#1db954]/10 text-[#1db954] border border-[#1db954]/20 px-1 py-0.5 rounded shrink-0">
-                            Auto
-                          </span>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              onClick={(e) => handleDeletePlaylist(e, pl._id || pl.id || pl.spotifyId, pl.name)}
+                              className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-400 text-[#b3b3b3] transition-all"
+                              title="Delete Playlist"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                            <span className="text-[9px] uppercase tracking-wider font-bold bg-[#1db954]/10 text-[#1db954] border border-[#1db954]/20 px-1 py-0.5 rounded">
+                              Auto
+                            </span>
+                          </div>
                         </Link>
                       );
                     })}
@@ -294,26 +323,35 @@ export default function Sidebar() {
                     <Link
                       key={`user-${playlist._id}-${idx}`}
                       href={targetHref}
-                      className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-xs transition-colors shrink-0 group ${
+                      className={`flex items-center justify-between gap-2 px-2.5 py-2 rounded-md text-xs transition-colors shrink-0 group ${
                         isActive
                           ? "bg-[#282828] text-white font-medium"
                           : "text-[#b3b3b3] hover:text-white hover:bg-[#1a1a1a]"
                       }`}
                     >
-                      <div className="w-8 h-8 bg-[#282828] rounded shadow-sm overflow-hidden shrink-0 flex items-center justify-center">
-                        {playlist.coverImage ? (
-                          <Image
-                            src={playlist.coverImage}
-                            alt={playlist.name}
-                            width={32}
-                            height={32}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <ListVideo className="w-4 h-4 text-[#b3b3b3]" />
-                        )}
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <div className="w-8 h-8 bg-[#282828] rounded shadow-sm overflow-hidden shrink-0 flex items-center justify-center">
+                          {playlist.coverImage ? (
+                            <Image
+                              src={playlist.coverImage}
+                              alt={playlist.name}
+                              width={32}
+                              height={32}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <ListVideo className="w-4 h-4 text-[#b3b3b3]" />
+                          )}
+                        </div>
+                        <span className="truncate block flex-1">{playlist.name}</span>
                       </div>
-                      <span className="truncate block flex-1">{playlist.name}</span>
+                      <button
+                        onClick={(e) => handleDeletePlaylist(e, playlist._id || playlist.id, playlist.name)}
+                        className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-400 text-[#b3b3b3] transition-all shrink-0"
+                        title="Delete Playlist"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </Link>
                   );
                 })}

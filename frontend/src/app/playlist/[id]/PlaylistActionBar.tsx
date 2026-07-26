@@ -49,18 +49,42 @@ export default function PlaylistActionBar({ tracks, playlistInfo, isUserCreated 
       <button 
         onClick={() => playlistInfo && toggleSavedPlaylist(playlistInfo)}
         className={`transition-colors ${isLiked ? "text-[#1db954]" : "text-[#b3b3b3] hover:text-white"}`}
+        title={isLiked ? "Remove from Saved" : "Save Playlist"}
       >
         <Heart className={`w-8 h-8 ${isLiked ? "fill-current" : ""}`} />
       </button>
+
+      {playlistInfo && (
+        <button 
+          onClick={async () => {
+            if (window.confirm(`Are you sure you want to delete "${playlistInfo.name}"? This action cannot be undone.`)) {
+              try {
+                await deleteUserPlaylist(playlistInfo.id);
+                window.dispatchEvent(new Event("saved_playlists_changed"));
+                router.push("/");
+              } catch (err) {
+                console.error("Failed to delete playlist:", err);
+                alert("Could not delete playlist.");
+              }
+            }
+          }}
+          className="text-[#b3b3b3] hover:text-red-500 transition-colors p-2 rounded-full hover:bg-red-500/10"
+          title="Delete Playlist"
+        >
+          <Trash2 className="w-7 h-7" />
+        </button>
+      )}
+
       <div className="relative">
         <button 
           onClick={() => setShowMenu(!showMenu)}
-          className="text-[#b3b3b3] hover:text-white transition-colors"
+          className="text-[#b3b3b3] hover:text-white transition-colors p-2 rounded-full hover:bg-white/5"
+          title="More options"
         >
           <MoreHorizontal className="w-8 h-8" />
         </button>
         {showMenu && (
-          <div className="absolute left-0 top-full mt-2 w-48 bg-[#282828] rounded shadow-2xl p-1 z-50">
+          <div className="absolute left-0 top-full mt-2 w-48 bg-[#282828] rounded shadow-2xl p-1 z-50 border border-[#3e3e3e]">
             <button 
               className="w-full text-left px-4 py-2.5 text-sm text-[#e5e5e5] hover:bg-[#3e3e3e] hover:text-white rounded transition-colors"
               onClick={() => {
@@ -71,7 +95,7 @@ export default function PlaylistActionBar({ tracks, playlistInfo, isUserCreated 
             >
               Share (Copy Link)
             </button>
-            {isUserCreated && playlistInfo && (
+            {playlistInfo && (
               <>
                 <button 
                   className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm text-[#e5e5e5] hover:bg-[#3e3e3e] hover:text-white rounded transition-colors"
@@ -92,7 +116,7 @@ export default function PlaylistActionBar({ tracks, playlistInfo, isUserCreated 
                   className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm text-red-400 hover:bg-[#3e3e3e] hover:text-red-300 rounded transition-colors"
                   onClick={async () => {
                     setShowMenu(false);
-                    if (window.confirm("Are you sure you want to delete this playlist? This action cannot be undone.")) {
+                    if (window.confirm(`Are you sure you want to delete "${playlistInfo.name}"? This action cannot be undone.`)) {
                       await deleteUserPlaylist(playlistInfo.id);
                       window.dispatchEvent(new Event("saved_playlists_changed"));
                       router.push("/");
