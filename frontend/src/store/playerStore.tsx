@@ -201,7 +201,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       setCurrentTrack(track);
       setIsLoading(true);
       setCurrentTime(0);
-      if (autoPlay) setIsPlaying(true);
+      if (autoPlay) {
+        setIsPlaying(true);
+        if (audioContextRef.current?.state === "suspended") {
+          audioContextRef.current.resume().catch(() => {});
+        }
+      }
 
       // Record play history in background if it's a real track (has ID)
       if (track.id && autoPlay) {
@@ -328,6 +333,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   const playTrack = useCallback(
     (track: PlayerTrack) => {
+      if (audioContextRef.current?.state === "suspended") {
+        audioContextRef.current.resume().catch(() => {});
+      }
       setQueue([track]);
       setOriginalQueue([track]);
       setQueueIndex(0);
@@ -686,6 +694,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const p = getActivePlayer();
     if (p) {
       if (isPlaying) {
+        if (audioContextRef.current?.state === "suspended") {
+          audioContextRef.current.resume().catch(() => {});
+        }
         if (p.paused) {
           p.play().catch((e: any) => console.error("Auto-play blocked:", e));
         }
@@ -694,7 +705,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         if (player2Ref.current && !player2Ref.current.paused) player2Ref.current.pause();
       }
     }
-  }, [isPlaying, currentStreamUrl, activePlayerId]);
+  }, [isPlaying, currentStreamUrl, activePlayerId, getActivePlayer]);
 
   // Handle Web Audio API graph for volume normalization
   useEffect(() => {
@@ -773,12 +784,15 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
                 if (activePlayerId === 1) {
                   setIsLoading(false);
                   if (isPlaying) {
+                    if (audioContextRef.current?.state === "suspended") {
+                      audioContextRef.current.resume().catch(() => {});
+                    }
                     e.currentTarget.play().catch(() => {});
                   }
                 }
               }}
               onPlay={() => { if (activePlayerId === 1) setIsPlaying(true) }}
-              onPause={() => { if (activePlayerId === 1) setIsPlaying(false) }}
+              onPause={(e) => { if (activePlayerId === 1 && !isLoading && e.currentTarget.currentTime > 0 && !e.currentTarget.ended) setIsPlaying(false) }}
               onEnded={() => { if (activePlayerId === 1) onEnded() }}
               onError={(e) => { if (activePlayerId === 1) onError(e) }}
             />
@@ -799,12 +813,15 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
                 if (activePlayerId === 2) {
                   setIsLoading(false);
                   if (isPlaying) {
+                    if (audioContextRef.current?.state === "suspended") {
+                      audioContextRef.current.resume().catch(() => {});
+                    }
                     e.currentTarget.play().catch(() => {});
                   }
                 }
               }}
               onPlay={() => { if (activePlayerId === 2) setIsPlaying(true) }}
-              onPause={() => { if (activePlayerId === 2) setIsPlaying(false) }}
+              onPause={(e) => { if (activePlayerId === 2 && !isLoading && e.currentTarget.currentTime > 0 && !e.currentTarget.ended) setIsPlaying(false) }}
               onEnded={() => { if (activePlayerId === 2) onEnded() }}
               onError={(e) => { if (activePlayerId === 2) onError(e) }}
             />
