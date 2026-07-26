@@ -117,9 +117,9 @@ export default async function Home() {
 
         {quickAccessItems.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-            {quickAccessItems.map((item) => (
+            {quickAccessItems.map((item, idx) => (
               <Link
-                key={item.id}
+                key={`quick-${item.id}-${idx}`}
                 href={item.type === "album" ? `/album/${encodeURIComponent(item.id)}` : `/playlist/${item.id}`}
                 className="flex items-center gap-3 bg-[#ffffff10] hover:bg-[#ffffff20] transition-colors rounded-md overflow-hidden group cursor-pointer pr-4"
               >

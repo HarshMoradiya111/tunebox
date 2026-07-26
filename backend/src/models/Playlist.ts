@@ -7,6 +7,14 @@ export interface IPlaylist extends Document {
   coverImage: string;
   owner: string;
   tracks: Types.ObjectId[];
+  missingTracks?: {
+    spotifyId: string;
+    title: string;
+    artist: string;
+    album: string;
+    duration: number; // in milliseconds
+    addedAt: Date;
+  }[];
   totalTracks: number;
   isPublic: boolean;
   importStatus: string;
@@ -22,6 +30,14 @@ const playlistSchema = new Schema<IPlaylist>(
     coverImage: { type: String, default: "" },
     owner: { type: String, default: "" },
     tracks: [{ type: Schema.Types.ObjectId, ref: "Track" }],
+    missingTracks: [{
+      spotifyId: { type: String, required: true },
+      title: { type: String, required: true },
+      artist: { type: String, required: true },
+      album: { type: String, default: "" },
+      duration: { type: Number, default: 0 },
+      addedAt: { type: Date, default: Date.now }
+    }],
     totalTracks: { type: Number, default: 0 },
     isPublic: { type: Boolean, default: true },
     importStatus: { type: String, enum: ["pending", "importing", "completed", "failed"], default: "completed" },

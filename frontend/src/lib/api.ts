@@ -77,6 +77,14 @@ export interface ApiPlaylistDetail {
   coverImage: string;
   owner: string;
   tracks: ApiTrack[];
+  missingTracks?: {
+    spotifyId: string;
+    title: string;
+    artist: string;
+    album: string;
+    duration: number;
+    addedAt?: string;
+  }[];
   totalTracks: number;
   importStatus?: "pending" | "importing" | "completed" | "failed";
   isUserCreated?: boolean;
@@ -185,14 +193,32 @@ export async function fetchAutoPlaylists(): Promise<any[]> {
   return Array.isArray(res) ? res : (res as any).data || [];
 }
 
+export interface ImportPlaylistResult {
+  playlist: ApiPlaylistDetail;
+  matchedCount: number;
+  missingCount: number;
+  message: string;
+}
+
 /** Import a playlist from a Spotify URL */
-export async function importPlaylistApi(url: string): Promise<ApiPlaylistDetail> {
-  const res = await apiFetch<{ success: boolean; playlist: ApiPlaylistDetail }>("/playlist/import", {
+export async function importPlaylistApi(url: string): Promise<ImportPlaylistResult> {
+  const res = await apiFetch<{
+    success: boolean;
+    playlist: ApiPlaylistDetail;
+    matchedCount?: number;
+    missingCount?: number;
+    message?: string;
+  }>("/playlist/import", {
     method: "POST",
     body: JSON.stringify({ url }),
   });
   if (!res.success) throw new Error("Failed to import playlist");
-  return res.playlist;
+  return {
+    playlist: res.playlist,
+    matchedCount: res.matchedCount || 0,
+    missingCount: res.missingCount || 0,
+    message: res.message || "Playlist imported",
+  };
 }
 
 // --- Phase 6: Fetch-on-miss song resolution ---
@@ -422,4 +448,27 @@ export async function fetchLocalAlbums(): Promise<any[]> {
 export async function fetchLocalAlbumTracks(albumName: string): Promise<import("../store/playerStore").PlayerTrack[]> {
   const res = await apiFetch<{ success: boolean; data: ApiSong[] }>(`/library/albums/${encodeURIComponent(albumName)}`);
   return res.data.map(mapSongToPlayerTrack);
+}
+
+export interface MissingTrackItem {
+  spotifyId: string;
+  title: string;
+  artist: string;
+  album: string;
+  duration: number;
+  addedAt?: string;
+  playlistId?: string;
+  playlistName?: string;
+}
+
+export async function fetchMissingTracksQueue(): Promise<MissingTrackItem[]> {
+  const res = await apiFetch<{ success: boolean; data: MissingTrackItem[] }>("/library/missing");
+  return res.data || [];
+}
+
+export async function removeMissingTrackFromQueue(playlistId: string, spotifyId: string): Promise<boolean> {
+  const res = await apiFetch<{ success: boolean }>(`/library/missing/${playlistId}/${spotifyId}`, {
+    method: "DELETE",
+  });
+  return res.success;
 }

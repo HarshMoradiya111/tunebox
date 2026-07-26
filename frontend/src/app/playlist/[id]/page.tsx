@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { Clock, Edit2, Trash2 } from "lucide-react";
+import { Clock, Edit2, Trash2, AlertTriangle, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import TrackRow from "@/components/TrackRow";
 import PlaylistActionBar from "./PlaylistActionBar";
@@ -24,6 +24,7 @@ export default async function PlaylistPage({ params }: PlaylistPageProps) {
   let owner = "TuneBox";
   let trackCount = 0;
   let tracks: any[] = [];
+  let missingTracks: any[] = [];
   let importStatus = "";
   let isUserCreated = false;
 
@@ -37,6 +38,7 @@ export default async function PlaylistPage({ params }: PlaylistPageProps) {
     trackCount = playlist.totalTracks || playlist.tracks.length;
     importStatus = playlist.importStatus || "";
     isUserCreated = playlist.isUserCreated || false;
+    missingTracks = playlist.missingTracks || [];
 
     // Map API tracks to shape for the TrackRow component
     // Convert to PlayerTrack format
@@ -90,6 +92,31 @@ export default async function PlaylistPage({ params }: PlaylistPageProps) {
         </div>
       </div>
 
+      {missingTracks.length > 0 && (
+        <div className="mx-4 md:mx-8 mt-2 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-amber-500/20 rounded-lg text-amber-400 shrink-0">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-white font-bold text-sm">
+                {missingTracks.length} {missingTracks.length === 1 ? "track is" : "tracks are"} missing from your local library
+              </h3>
+              <p className="text-xs text-[#b3b3b3] mt-0.5">
+                Upload these tracks to your library and they will automatically join this playlist!
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/library/missing"
+            className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold rounded-full transition-colors shrink-0 shadow-lg"
+          >
+            <span>View Missing Queue</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+      )}
+
       <div className="p-4 md:p-8">
         {!isUserCreated && (importStatus === "pending" || importStatus === "importing") && (
           <ImportPoller 
@@ -109,14 +136,26 @@ export default async function PlaylistPage({ params }: PlaylistPageProps) {
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <h3 className="text-xl font-bold text-white mb-2">This playlist is empty</h3>
             <p className="text-[#b3b3b3] text-sm mb-6 max-w-sm">
-              Add songs from your library or search for tracks to build your playlist.
+              {missingTracks.length > 0 
+                ? "All tracks in this Spotify playlist are missing from your library. Upload them in the Missing Queue to populate this playlist!"
+                : "Add songs from your library or search for tracks to build your playlist."}
             </p>
-            <Link 
-              href="/library/uploads" 
-              className="px-6 py-2.5 bg-white text-black font-bold rounded-full hover:scale-105 transition-transform"
-            >
-              Go to Local Library
-            </Link>
+            <div className="flex gap-3">
+              <Link 
+                href="/library/uploads" 
+                className="px-6 py-2.5 bg-white text-black font-bold rounded-full hover:scale-105 transition-transform text-sm"
+              >
+                Go to Local Library
+              </Link>
+              {missingTracks.length > 0 && (
+                <Link 
+                  href="/library/missing" 
+                  className="px-6 py-2.5 bg-amber-500 text-black font-bold rounded-full hover:scale-105 transition-transform text-sm"
+                >
+                  View Missing Queue
+                </Link>
+              )}
+            </div>
           </div>
         ) : (
           <>
@@ -134,7 +173,7 @@ export default async function PlaylistPage({ params }: PlaylistPageProps) {
             <div className="flex flex-col">
               {tracks.map((track, index) => (
                 <TrackRow
-                  key={track.id}
+                  key={`${track.id}-${index}`}
                   track={track}
                   index={index}
                   allTracks={tracks}
@@ -142,6 +181,52 @@ export default async function PlaylistPage({ params }: PlaylistPageProps) {
               ))}
             </div>
           </>
+        )}
+
+        {missingTracks.length > 0 && (
+          <div className="mt-12 pt-8 border-t border-[#282828]">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-amber-400" />
+                <h3 className="text-lg font-bold text-white">Missing Tracks ({missingTracks.length})</h3>
+              </div>
+              <Link 
+                href="/library/missing"
+                className="text-xs text-[#1db954] hover:underline font-medium"
+              >
+                Manage in Missing Queue →
+              </Link>
+            </div>
+            <p className="text-xs text-[#b3b3b3] mb-4">
+              These Spotify tracks were not found in your library during import. When you upload MP3s matching their title and artist, they will automatically join this playlist.
+            </p>
+
+            <div className="bg-[#141414] rounded-lg border border-[#282828] overflow-hidden">
+              <div className="grid grid-cols-[16px_minmax(0,1fr)_minmax(0,1fr)_80px] gap-4 px-4 py-2.5 text-xs font-medium text-[#7a7a7a] border-b border-[#282828] bg-[#181818]">
+                <div className="text-center">#</div>
+                <div>Title / Artist</div>
+                <div className="hidden md:block">Album</div>
+                <div className="text-right">Status</div>
+              </div>
+              <div className="divide-y divide-[#222]">
+                {missingTracks.map((mt, idx) => (
+                  <div key={`${mt.spotifyId || 'missing'}-${idx}`} className="grid grid-cols-[16px_minmax(0,1fr)_minmax(0,1fr)_80px] gap-4 px-4 py-3 text-sm items-center hover:bg-[#1a1a1a] transition-colors">
+                    <div className="text-center text-xs text-[#7a7a7a]">{idx + 1}</div>
+                    <div className="min-w-0">
+                      <div className="font-medium text-white truncate text-xs sm:text-sm">{mt.title}</div>
+                      <div className="text-xs text-[#7a7a7a] truncate mt-0.5">{mt.artist}</div>
+                    </div>
+                    <div className="hidden md:block text-xs text-[#7a7a7a] truncate">{mt.album || "Unknown Album"}</div>
+                    <div className="text-right">
+                      <span className="inline-block px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded text-[10px] font-semibold uppercase tracking-wider">
+                        Missing
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

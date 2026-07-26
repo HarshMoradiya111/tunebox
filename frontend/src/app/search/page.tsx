@@ -68,7 +68,7 @@ export default async function SearchPage({
               <div className="flex flex-col">
                 {localResults.map((track, idx) => (
                   <TrackRow 
-                    key={track.id} 
+                    key={`local-${track.id}-${idx}`} 
                     track={{
                       id: track.id,
                       spotifyId: track.spotifyId || "",
@@ -95,9 +95,9 @@ export default async function SearchPage({
               <p className="text-[#a7a7a7]">No results found.</p>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-                {results.map((track) => (
+                {results.map((track, idx) => (
                   <div
-                    key={track.id}
+                    key={`res-${track.id}-${idx}`}
                     className="bg-[#181818] hover:bg-[#282828] transition-colors rounded-xl p-4 cursor-pointer group flex flex-col gap-4 relative"
                   >
                     <div className="w-full aspect-square relative shadow-lg rounded-md overflow-hidden bg-[#282828]">

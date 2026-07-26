@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { Song, Playlist } from "../models";
+import { matchSongToMissingTracks } from "../services";
 import { uploadAudioToCloudinary, uploadImageToCloudinary, deleteFromCloudinary } from "../services/cloudinaryService";
 import path from "path";
 import fs from "fs";
@@ -88,6 +89,8 @@ export const uploadTrack = async (req: Request, res: Response): Promise<any> => 
     });
 
     await newSong.save();
+    await matchSongToMissingTracks(newSong);
+
 
     // Smart Auto-playlist assignment (e.g. Bollywood, Punjabi, Lofi, or Custom Name)
     let targetPlaylistName = metadata.playlist ? String(metadata.playlist).trim() : "";

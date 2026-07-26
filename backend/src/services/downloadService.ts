@@ -3,6 +3,7 @@ import path from "path";
 import fs from "fs";
 import config from "../config";
 import { Song } from "../models";
+import { matchSongToMissingTracks } from "./matchingService";
 // @ts-ignore
 import ytSearch from "yt-search";
 
@@ -90,6 +91,7 @@ export async function downloadAudio(
     song.format = "m4a";
     song.status = "ready";
     await song.save();
+    await matchSongToMissingTracks(song);
 
     return song;
   } catch (error: any) {
@@ -104,6 +106,7 @@ export async function downloadAudio(
         song.format = "stream";
         song.status = "ready";
         await song.save();
+        await matchSongToMissingTracks(song);
         return song;
       }
     } catch (itunesError: any) {

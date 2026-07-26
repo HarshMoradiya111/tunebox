@@ -17,10 +17,12 @@ import {
   ListVideo,
   ChevronDown,
   ChevronRight,
+  AlertCircle,
 } from "lucide-react";
 import { usePlayer } from "@/store/playerStore";
 import { fetchAutoPlaylists, getUserPlaylists } from "@/lib/api";
 import { CreatePlaylistModal } from "./CreatePlaylistModal";
+import { ImportPlaylistModal } from "./ImportPlaylistModal";
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -28,6 +30,7 @@ export default function Sidebar() {
   const [likedCount, setLikedCount] = useState<number>(0);
   const [showPlusMenu, setShowPlusMenu] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [showAutoPlaylists, setShowAutoPlaylists] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -92,6 +95,7 @@ export default function Sidebar() {
     { name: "Search", href: "/search", icon: Search },
     { name: "Your Library", href: "/liked", icon: Library },
     { name: "Upload", href: "/upload", icon: Upload },
+    { name: "Missing Songs", href: "/library/missing", icon: AlertCircle },
   ];
 
   return (
@@ -148,7 +152,27 @@ export default function Sidebar() {
 
               {/* Plus Menu Dropdown */}
               {showPlusMenu && (
-                <div className="absolute right-0 top-8 w-48 bg-[#282828] border border-[#3e3e3e] rounded-md shadow-xl py-1 z-50 text-xs">
+                <div className="absolute right-0 top-8 w-52 bg-[#282828] border border-[#3e3e3e] rounded-md shadow-xl py-1 z-50 text-xs">
+                  <button
+                    onClick={() => {
+                      setShowPlusMenu(false);
+                      setShowCreateModal(true);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-[#d1d1d1] hover:text-white hover:bg-[#3e3e3e] transition-colors text-left"
+                  >
+                    <Plus className="w-3.5 h-3.5 text-[#1db954]" />
+                    <span>Create New Playlist</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowPlusMenu(false);
+                      setShowImportModal(true);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-[#d1d1d1] hover:text-white hover:bg-[#3e3e3e] transition-colors text-left"
+                  >
+                    <Compass className="w-3.5 h-3.5 text-[#1db954]" />
+                    <span>Import Spotify Playlist</span>
+                  </button>
                   <Link
                     href="/upload"
                     onClick={() => setShowPlusMenu(false)}
@@ -171,6 +195,13 @@ export default function Sidebar() {
               <Upload className="w-3.5 h-3.5 text-[#1db954]" />
               <span>Upload</span>
             </Link>
+            <button
+              onClick={() => setShowImportModal(true)}
+              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 bg-[#242424] hover:bg-[#323232] text-xs font-medium text-white rounded-full transition-colors border border-white/5"
+            >
+              <Compass className="w-3.5 h-3.5 text-[#1db954]" />
+              <span>Import</span>
+            </button>
           </div>
 
           {/* Scrollable Library & Playlist Items Container */}
@@ -211,12 +242,12 @@ export default function Sidebar() {
 
                 {showAutoPlaylists && (
                   <div className="mt-1 flex flex-col gap-0.5">
-                    {autoPlaylists.map((pl) => {
+                    {autoPlaylists.map((pl, idx) => {
                       const targetHref = `/playlist/${pl.spotifyId || pl.id}`;
                       const isActive = pathname === targetHref;
                       return (
                         <Link
-                          key={pl.spotifyId || pl.id}
+                          key={`auto-${pl.spotifyId || pl.id}-${idx}`}
                           href={targetHref}
                           className={`flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-md transition-colors text-sm group shrink-0 ${
                             isActive
@@ -256,12 +287,12 @@ export default function Sidebar() {
                     <Plus className="w-3.5 h-3.5" />
                   </button>
                 </div>
-                {userPlaylists.map((playlist) => {
+                {userPlaylists.map((playlist, idx) => {
                   const targetHref = `/playlist/${playlist._id}`;
                   const isActive = pathname === targetHref;
                   return (
                     <Link
-                      key={playlist._id}
+                      key={`user-${playlist._id}-${idx}`}
                       href={targetHref}
                       className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-xs transition-colors shrink-0 group ${
                         isActive
@@ -295,12 +326,12 @@ export default function Sidebar() {
                 <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[#727272]">
                   Saved from Spotify
                 </div>
-                {savedPlaylists.map((playlist) => {
+                {savedPlaylists.map((playlist, idx) => {
                   const targetHref = `/playlist/${playlist.id}`;
                   const isActive = pathname === targetHref;
                   return (
                     <Link
-                      key={playlist.id}
+                      key={`saved-${playlist.id}-${idx}`}
                       href={targetHref}
                       className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-xs transition-colors shrink-0 group ${
                         isActive
@@ -353,6 +384,9 @@ export default function Sidebar() {
 
       {showCreateModal && (
         <CreatePlaylistModal onClose={() => setShowCreateModal(false)} />
+      )}
+      {showImportModal && (
+        <ImportPlaylistModal onClose={() => setShowImportModal(false)} />
       )}
     </>
   );

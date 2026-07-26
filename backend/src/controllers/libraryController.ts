@@ -158,3 +158,49 @@ export const getLocalAlbumTracks = async (req: Request, res: Response): Promise<
     res.status(500).json({ success: false, message: "Failed to fetch album tracks" });
   }
 };
+
+export const getMissingTracksQueue = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const playlists = await Playlist.find({ "missingTracks.0": { $exists: true } }, { name: 1, _id: 1, missingTracks: 1 }).lean();
+    
+    const queue: any[] = [];
+    for (const p of playlists) {
+      if (p.missingTracks && Array.isArray(p.missingTracks)) {
+        for (const mt of p.missingTracks) {
+          queue.push({
+            ...mt,
+            playlistId: p._id,
+            playlistName: p.name
+          });
+        }
+      }
+    }
+
+    queue.sort((a, b) => new Date(b.addedAt || 0).getTime() - new Date(a.addedAt || 0).getTime());
+
+    res.json({ success: true, data: queue, count: queue.length });
+  } catch (error) {
+    console.error("Missing tracks queue error:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch missing tracks queue" });
+  }
+};
+
+export const removeMissingTrack = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { playlistId, spotifyId } = req.params;
+    const playlist = await Playlist.findById(playlistId);
+    if (!playlist) {
+      res.status(404).json({ success: false, message: "Playlist not found" });
+      return;
+    }
+    if (playlist.missingTracks) {
+      playlist.missingTracks = playlist.missingTracks.filter((mt: any) => mt.spotifyId !== spotifyId);
+      playlist.totalTracks = playlist.tracks.length + playlist.missingTracks.length;
+      await playlist.save();
+    }
+    res.json({ success: true, message: "Removed track from missing queue" });
+  } catch (error) {
+    console.error("Remove missing track error:", error);
+    res.status(500).json({ success: false, message: "Failed to remove missing track" });
+  }
+};

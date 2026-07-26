@@ -147,7 +147,7 @@ export default function ArtistPage({ params }: { params: Promise<{ name: string 
             </div>
             {tracks.map((track, idx) => (
               <TrackRow 
-                key={track.id} 
+                key={`${track.id}-${idx}`} 
                 track={track} 
                 index={idx} 
                 allTracks={tracks}

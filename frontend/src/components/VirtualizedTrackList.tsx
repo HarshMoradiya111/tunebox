@@ -34,7 +34,7 @@ export default function VirtualizedTrackList({
       <div className="flex flex-col">
         {tracks.map((track, idx) => (
           <TrackRow
-            key={track.id}
+            key={`${track.id}-${idx}`}
             track={track}
             index={idx}
             allTracks={tracks}
@@ -60,7 +60,7 @@ export default function VirtualizedTrackList({
           const track = tracks[virtualRow.index];
           return (
             <div
-              key={track.id || virtualRow.index}
+              key={`${track.id || 'track'}-${virtualRow.index}`}
               style={{
                 position: "absolute",
                 top: 0,

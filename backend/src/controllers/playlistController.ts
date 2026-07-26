@@ -153,7 +153,7 @@ export async function getImportStatus(
     const spotifyId = req.params.spotifyId as string;
     
     const playlist = await Playlist.findOne({ spotifyId })
-      .select("importStatus totalTracks tracks")
+      .select("importStatus totalTracks tracks missingTracks")
       .lean();
 
     if (!playlist) {
@@ -165,7 +165,9 @@ export async function getImportStatus(
       success: true,
       importStatus: playlist.importStatus,
       totalTracks: playlist.totalTracks,
-      tracksImportedSoFar: playlist.tracks?.length || 0
+      tracksImportedSoFar: playlist.tracks?.length || 0,
+      missingTracksCount: playlist.missingTracks?.length || 0,
+      missingTracks: playlist.missingTracks || []
     });
   } catch (error) {
     next(error);

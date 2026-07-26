@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import { Playlist, Track } from "../models";
-import { downloadAudio } from "../services";
+import { Playlist, Song } from "../models";
+import { findMatchingLocalSong } from "../services";
 
 const fetch = require("isomorphic-unfetch");
 const { getDetails } = require("spotify-url-info")(fetch);
@@ -24,13 +24,17 @@ export const importPlaylist = async (req: Request, res: Response): Promise<void>
     }
 
     // Check if playlist already exists
-    let existingPlaylist = await Playlist.findOne({ spotifyId }).populate("tracks");
+    let existingPlaylist = await Playlist.findOne({ spotifyId });
     if (existingPlaylist) {
-      res.status(200).json({ success: true, playlist: existingPlaylist });
+      res.status(200).json({ 
+        success: true, 
+        playlist: existingPlaylist,
+        message: "Playlist already imported." 
+      });
       return;
     }
 
-    // Fetch playlist details from Spotify
+    // Fetch playlist details from Spotify metadata
     let details;
     try {
       details = await getDetails(url);
@@ -47,78 +51,64 @@ export const importPlaylist = async (req: Request, res: Response): Promise<void>
 
     const { preview, tracks } = details;
 
-    // Create new Playlist
+    // Load all ready local songs for matching
+    const localSongs = await Song.find({ status: "ready" }).lean();
+
+    const matchedTrackIds: any[] = [];
+    const missingTracks: any[] = [];
+
+    if (Array.isArray(tracks)) {
+      for (const t of tracks) {
+        if (!t) continue;
+        const title = t.name || t.title || "Unknown Title";
+        const artist = t.artist || (t.artists ? t.artists.map((a: any) => a.name).join(", ") : "Unknown Artist");
+        const durationMs = t.duration_ms || t.duration || 0;
+        const trackSpotifyId = t.uri ? t.uri.replace("spotify:track:", "") : (t.id || `spotify-${Date.now()}-${Math.random()}`);
+
+        const match = findMatchingLocalSong(title, artist, durationMs, localSongs as any[]);
+
+        if (match) {
+          // Verify we don't add duplicates to the playlist
+          if (!matchedTrackIds.some(id => id.toString() === match._id.toString())) {
+            matchedTrackIds.push(match._id);
+          }
+        } else {
+          missingTracks.push({
+            spotifyId: trackSpotifyId,
+            title,
+            artist,
+            album: t.album?.name || t.album || "Unknown Album",
+            duration: durationMs,
+            addedAt: new Date()
+          });
+        }
+      }
+    }
+
+    // Create new Playlist with matched songs and missing queue
     const newPlaylist = new Playlist({
       spotifyId,
       name: preview.title || "Imported Playlist",
       description: preview.description || "",
       coverImage: preview.image || "",
-      owner: "Imported",
-      tracks: [],
-      totalTracks: tracks.length || 0,
+      owner: preview.owner || "Spotify Import",
+      tracks: matchedTrackIds,
+      missingTracks: missingTracks,
+      totalTracks: matchedTrackIds.length + missingTracks.length,
       isPublic: true,
-      importStatus: "importing"
+      importStatus: "completed",
+      isUserCreated: true // Ensures playlistController loads full Song objects
     });
 
     await newPlaylist.save();
-    
-    // Return immediately to frontend
-    res.status(202).json({ success: true, playlist: newPlaylist, message: "Import started" });
 
-    // --- BACKGROUND PROCESS ---
-    (async () => {
-      try {
-        let savedTracksCount = 0;
-
-        for (const t of tracks) {
-          if (!t.uri) continue;
-          
-          const trackSpotifyId = t.uri.replace("spotify:track:", "");
-          
-          const song = await downloadAudio(
-            t.name || "Unknown Title",
-            t.artist || "Unknown Artist",
-            trackSpotifyId,
-            t.duration_ms || t.duration || 0,
-            "Spotify Import",
-            preview.image || ""
-          );
-
-          // Add to playlist if successful
-          if (song && song._id && song.status === "ready") {
-            // Check if track exists
-            let existingTrack = await Track.findOne({ spotifyId: trackSpotifyId });
-            
-            if (!existingTrack) {
-              existingTrack = new Track({
-                spotifyId: trackSpotifyId,
-                title: t.name || "Unknown Title",
-                artist: t.artist || "Unknown Artist",
-                album: "Spotify Import",
-                albumArt: preview.image || "",
-                duration: t.duration_ms || t.duration || 0,
-                streamUrl: song.streamUrl || "",
-              });
-              await existingTrack.save();
-            } else if (!existingTrack.streamUrl && song.streamUrl) {
-              existingTrack.streamUrl = song.streamUrl;
-              await existingTrack.save();
-            }
-
-            newPlaylist.tracks.push(existingTrack._id);
-            savedTracksCount++;
-            await newPlaylist.save();
-          }
-        }
-
-        newPlaylist.importStatus = "completed";
-        await newPlaylist.save();
-      } catch (err: any) {
-        console.error("Background import failed:", err.message, err.stack);
-        newPlaylist.importStatus = "failed";
-        await newPlaylist.save();
-      }
-    })();
+    res.status(200).json({
+      success: true,
+      playlist: newPlaylist,
+      matchedCount: matchedTrackIds.length,
+      missingCount: missingTracks.length,
+      message: `Imported ${matchedTrackIds.length} songs from library. ${missingTracks.length} tracks added to missing queue.`
+    });
 
   } catch (err: any) {
     console.error("Playlist import error:", err.message, err.stack);
