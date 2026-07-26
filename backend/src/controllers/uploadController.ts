@@ -64,27 +64,30 @@ export const uploadTrack = async (req: Request, res: Response): Promise<any> => 
     let finalAudioPath = file.path;
     let finalFileSize = file.size;
     let ext = path.extname(file.originalname).replace(".", "") || "mp3";
+    let usedCloudCompression = false;
 
     if (file.size > 5 * 1024 * 1024) {
       try {
         compressedAudioPath = `${file.path}_compressed.mp3`;
-        console.log(`Compressing ${file.path} to ${compressedAudioPath}...`);
+        console.log(`Compressing ${file.path} locally to ${compressedAudioPath}...`);
         await compressAudio(file.path, compressedAudioPath, "160k");
         
         finalAudioPath = compressedAudioPath;
         const stats = fs.statSync(compressedAudioPath);
         finalFileSize = stats.size;
         ext = "mp3"; // Since we transcoded to mp3
-        console.log(`Compression successful. Original size: ${file.size}, New size: ${finalFileSize}`);
+        console.log(`Local compression successful. Original size: ${file.size}, New size: ${finalFileSize}`);
       } catch (err) {
-        console.error("Compression failed, falling back to original file:", err);
+        console.warn("Local compression failed (common in cloud servers). Falling back to Cloudinary cloud compression:", err);
         finalAudioPath = file.path;
         finalFileSize = file.size;
+        ext = "mp3"; // Cloudinary will transcode to mp3
+        usedCloudCompression = true;
       }
     }
 
-    // Upload to Cloudinary
-    const secureUrl = await uploadAudioToCloudinary(finalAudioPath, uniqueId);
+    // Upload to Cloudinary (with eager cloud compression if local compression failed on large files)
+    const secureUrl = await uploadAudioToCloudinary(finalAudioPath, uniqueId, usedCloudCompression);
     let albumArtUrl = metadata.albumArt || "";
 
     if (coverFile) {
