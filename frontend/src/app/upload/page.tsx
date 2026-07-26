@@ -144,40 +144,86 @@ export default function UploadPage() {
 
           <div className="flex-1 overflow-y-auto space-y-3 sm:space-y-4 pr-1 sm:pr-2">
             {tracks.map((track) => (
-              <div key={track.id} className={`bg-[#181818] rounded-lg p-3 sm:p-4 flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center group relative ${track.status === 'skipped' ? 'opacity-50' : ''}`}>
-                {/* Header section on mobile: Cover Art + Status + Delete */}
-                <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 sm:w-16 sm:h-16 bg-[#282828] rounded flex shrink-0 items-center justify-center relative overflow-hidden">
-                      {track.albumArt ? (
-                        <Image src={track.albumArt} alt="Cover" fill className="object-cover" />
-                      ) : (
-                        <Music className="w-5 h-5 sm:w-6 sm:h-6 text-[#b3b3b3]" />
-                      )}
+              <div 
+                key={track.id} 
+                className={`bg-[#181818] hover:bg-[#202020] border border-[#282828] rounded-xl p-3.5 sm:p-4 flex flex-col gap-3 transition-colors relative group ${
+                  track.status === 'skipped' ? 'opacity-50' : ''
+                }`}
+              >
+                {/* Main Card Content: Art + Inputs + Status Badge */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full">
+                  {/* Cover Art */}
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 bg-[#282828] rounded-lg shrink-0 overflow-hidden relative border border-[#333] shadow-sm flex items-center justify-center">
+                    {track.albumArt ? (
+                      <Image src={track.albumArt} alt="Cover" fill className="object-cover" />
+                    ) : (
+                      <Music className="w-6 h-6 text-[#b3b3b3]" />
+                    )}
+                  </div>
+
+                  {/* Metadata Fields: Title, Artist, Album */}
+                  <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 w-full min-w-0">
+                    <div className="flex flex-col min-w-0">
+                      <label htmlFor={`title-${track.id}`} className="text-[11px] font-semibold text-[#b3b3b3] uppercase tracking-wider mb-1">
+                        Title
+                      </label>
+                      <input 
+                        id={`title-${track.id}`}
+                        type="text" 
+                        value={track.title}
+                        onChange={(e) => updateTrackField(track.id, "title", e.target.value)}
+                        disabled={track.status === "uploading" || track.status === "success"}
+                        className="bg-[#282828] focus:bg-[#333] text-sm text-white px-3 py-1.5 rounded-lg outline-none border border-transparent focus:border-[#1db954] transition-all disabled:opacity-50 w-full truncate"
+                        placeholder="Song title"
+                      />
                     </div>
-                    {/* Title preview on mobile */}
-                    <div className="sm:hidden truncate font-medium text-sm max-w-[160px]">
-                      {track.title || "Untitled"}
+                    <div className="flex flex-col min-w-0">
+                      <label htmlFor={`artist-${track.id}`} className="text-[11px] font-semibold text-[#b3b3b3] uppercase tracking-wider mb-1">
+                        Artist
+                      </label>
+                      <input 
+                        id={`artist-${track.id}`}
+                        type="text" 
+                        value={track.artist}
+                        onChange={(e) => updateTrackField(track.id, "artist", e.target.value)}
+                        disabled={track.status === "uploading" || track.status === "success"}
+                        className="bg-[#282828] focus:bg-[#333] text-sm text-white px-3 py-1.5 rounded-lg outline-none border border-transparent focus:border-[#1db954] transition-all disabled:opacity-50 w-full truncate"
+                        placeholder="Artist name"
+                      />
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <label htmlFor={`album-${track.id}`} className="text-[11px] font-semibold text-[#b3b3b3] uppercase tracking-wider mb-1">
+                        Album
+                      </label>
+                      <input 
+                        id={`album-${track.id}`}
+                        type="text" 
+                        value={track.album}
+                        onChange={(e) => updateTrackField(track.id, "album", e.target.value)}
+                        disabled={track.status === "uploading" || track.status === "success"}
+                        className="bg-[#282828] focus:bg-[#333] text-sm text-white px-3 py-1.5 rounded-lg outline-none border border-transparent focus:border-[#1db954] transition-all disabled:opacity-50 w-full truncate"
+                        placeholder="Album name"
+                      />
                     </div>
                   </div>
 
-                  {/* Status & Mobile Delete Button */}
-                  <div className="flex items-center gap-2">
-                    <span className={`text-xs font-medium uppercase ${
-                      track.status === "success" ? "text-[#1db954]" :
-                      track.status === "error" ? "text-red-500" :
-                      track.status === "uploading" ? "text-blue-400" :
-                      track.status === "skipped" ? "text-[#b3b3b3]" :
-                      "text-[#b3b3b3]"
+                  {/* Status Badge & Remove Button */}
+                  <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto shrink-0 mt-1 sm:mt-0">
+                    <span className={`text-xs font-bold uppercase px-3 py-1 rounded-full ${
+                      track.status === "success" ? "bg-[#1db954]/20 text-[#1db954]" :
+                      track.status === "error" ? "bg-red-500/20 text-red-400" :
+                      track.status === "uploading" ? "bg-blue-500/20 text-blue-400 animate-pulse" :
+                      track.status === "skipped" ? "bg-yellow-500/20 text-yellow-400" :
+                      "bg-[#282828] text-[#b3b3b3]"
                     }`}>
-                      {track.status}
+                      {track.status === "uploading" ? `Uploading ${track.progress || 0}%` : track.status}
                     </span>
 
                     {track.status !== "uploading" && track.status !== "success" && (
                       <button 
                         onClick={() => removeTrack(track.id)}
                         aria-label={`Remove track ${track.title}`}
-                        className="bg-[#282828] rounded-full p-1.5 text-[#b3b3b3] hover:text-red-500 hover:bg-red-500/20 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
+                        className="p-1.5 text-[#b3b3b3] hover:text-red-400 hover:bg-red-500/20 rounded-full transition-colors"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -185,49 +231,12 @@ export default function UploadPage() {
                   </div>
                 </div>
 
-                {/* Metadata Editable Fields */}
-                <div className="w-full flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
-                  <div className="flex flex-col">
-                    <label htmlFor={`title-${track.id}`} className="text-xs text-[#b3b3b3] mb-1">Title</label>
-                    <input 
-                      id={`title-${track.id}`}
-                      type="text" 
-                      value={track.title}
-                      onChange={(e) => updateTrackField(track.id, "title", e.target.value)}
-                      disabled={track.status === "uploading" || track.status === "success"}
-                      className="bg-[#282828] text-sm text-white px-3 py-1.5 rounded outline-none focus:ring-1 focus:ring-[#1db954] disabled:opacity-50 w-full"
-                    />
-                  </div>
-                  <div className="flex flex-col">
-                    <label htmlFor={`artist-${track.id}`} className="text-xs text-[#b3b3b3] mb-1">Artist</label>
-                    <input 
-                      id={`artist-${track.id}`}
-                      type="text" 
-                      value={track.artist}
-                      onChange={(e) => updateTrackField(track.id, "artist", e.target.value)}
-                      disabled={track.status === "uploading" || track.status === "success"}
-                      className="bg-[#282828] text-sm text-white px-3 py-1.5 rounded outline-none focus:ring-1 focus:ring-[#1db954] disabled:opacity-50 w-full"
-                    />
-                  </div>
-                  <div className="flex flex-col">
-                    <label htmlFor={`album-${track.id}`} className="text-xs text-[#b3b3b3] mb-1">Album</label>
-                    <input 
-                      id={`album-${track.id}`}
-                      type="text" 
-                      value={track.album}
-                      onChange={(e) => updateTrackField(track.id, "album", e.target.value)}
-                      disabled={track.status === "uploading" || track.status === "success"}
-                      className="bg-[#282828] text-sm text-white px-3 py-1.5 rounded outline-none focus:ring-1 focus:ring-[#1db954] disabled:opacity-50 w-full"
-                    />
-                  </div>
-                </div>
-
-                {/* Upload Progress Bar (when uploading) */}
+                {/* Progress Bar (Full width across card bottom when uploading) */}
                 {track.status === "uploading" && (
-                  <div className="w-full h-1.5 bg-[#282828] rounded-full overflow-hidden mt-1">
+                  <div className="w-full bg-[#282828] h-1.5 rounded-full overflow-hidden mt-1">
                     <div 
-                      className="h-full bg-[#1db954] transition-all duration-300"
-                      style={{ width: `${track.progress}%` }}
+                      className="bg-[#1db954] h-full transition-all duration-300 rounded-full"
+                      style={{ width: `${track.progress || 0}%` }}
                     />
                   </div>
                 )}
