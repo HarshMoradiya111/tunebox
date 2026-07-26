@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { Playlist, Track } from "../models";
+import { Playlist } from "../models";
 import {
   getFeaturedPlaylists,
   getNewReleases,
@@ -8,9 +8,19 @@ import {
 
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
+let newReleasesCache: { data: any[]; timestamp: number } | null = null;
+let featuredCache: { data: any[]; timestamp: number } | null = null;
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), timeoutMs)),
+  ]);
+}
+
 /**
  * GET /api/browse/featured
- * Returns featured playlists, cache-first from MongoDB.
+ * Returns featured playlists, cache-first.
  */
 export async function featuredPlaylists(
   _req: Request,
@@ -18,21 +28,31 @@ export async function featuredPlaylists(
   next: NextFunction
 ): Promise<void> {
   try {
-    // Check cache: playlists updated within the last hour
-    const cached = await Playlist.find({
-      updatedAt: { $gte: new Date(Date.now() - CACHE_TTL_MS) },
-    })
+    // 1. Check in-memory cache
+    if (featuredCache && Date.now() - featuredCache.timestamp < CACHE_TTL_MS) {
+      res.json({ success: true, source: "memory-cache", data: featuredCache.data });
+      return;
+    }
+
+    // 2. Check MongoDB cache
+    const cached = await Playlist.find()
       .sort({ updatedAt: -1 })
       .limit(12)
       .lean();
 
-    if (cached.length >= 4) {
-      res.json({ success: true, source: "cache", data: cached });
+    if (cached.length >= 1) {
+      featuredCache = { data: cached, timestamp: Date.now() };
+      res.json({ success: true, source: "db-cache", data: cached });
       return;
     }
 
-    // Fetch from Spotify
-    const spotifyPlaylists = await getFeaturedPlaylists();
+    // 3. Fetch from MusicBrainz with 1.5s timeout
+    const spotifyPlaylists = await withTimeout(getFeaturedPlaylists(), 1500, []);
+
+    if (!spotifyPlaylists || spotifyPlaylists.length === 0) {
+      res.json({ success: true, source: "fallback", data: [] });
+      return;
+    }
 
     // Upsert into MongoDB
     const saved = await Promise.all(
@@ -53,7 +73,8 @@ export async function featuredPlaylists(
       })
     );
 
-    res.json({ success: true, source: "spotify", data: saved });
+    featuredCache = { data: saved, timestamp: Date.now() };
+    res.json({ success: true, source: "musicbrainz", data: saved });
   } catch (error) {
     next(error);
   }
@@ -61,7 +82,7 @@ export async function featuredPlaylists(
 
 /**
  * GET /api/browse/new-releases
- * Returns new album releases from Spotify.
+ * Returns new album releases with in-memory cache and 1.5s timeout.
  */
 export async function newReleases(
   _req: Request,
@@ -69,21 +90,31 @@ export async function newReleases(
   next: NextFunction
 ): Promise<void> {
   try {
-    const albums = await getNewReleases();
+    if (newReleasesCache && Date.now() - newReleasesCache.timestamp < CACHE_TTL_MS) {
+      res.json({ success: true, source: "memory-cache", data: newReleasesCache.data });
+      return;
+    }
 
-    const formatted = albums.map((album: any) => ({
+    const albums = await withTimeout(getNewReleases(), 1500, []);
+
+    const formatted = (albums || []).map((album: any) => ({
       spotifyId: album.id,
       name: album.name,
-      artist: album.artists.map((a: any) => a.name).join(", "),
+      artist: album.artists?.map((a: any) => a.name).join(", ") || "Unknown",
       coverImage: album.images?.[0]?.url || "",
-      releaseDate: album.release_date,
-      albumType: album.album_type,
-      totalTracks: album.total_tracks,
+      releaseDate: album.release_date || "",
+      albumType: album.album_type || "album",
+      totalTracks: album.total_tracks || 1,
     }));
 
-    res.json({ success: true, data: formatted });
+    if (formatted.length > 0) {
+      newReleasesCache = { data: formatted, timestamp: Date.now() };
+    }
+
+    res.json({ success: true, data: formatted.length > 0 ? formatted : (newReleasesCache?.data || []) });
   } catch (error) {
-    next(error);
+    console.error("Error in newReleases:", error);
+    res.json({ success: true, data: newReleasesCache?.data || [] });
   }
 }
 
