@@ -1,3 +1,4 @@
+// @ts-ignore
 import ffmpeg from 'fluent-ffmpeg';
 import fs from 'fs';
 const ffmpegPath = require('ffmpeg-static');
@@ -37,7 +38,7 @@ export const compressAudio = (inputPath: string, outputPath: string, bitrate: st
         .on('end', () => {
           resolve();
         })
-        .on('error', (err) => {
+        .on('error', (err: any) => {
           console.error(`ffmpeg transcoding error (${useSystemFfmpeg ? 'system binary' : 'static binary'}):`, err);
           if (!useSystemFfmpeg && ffmpegPath) {
             console.log("Retrying audio compression using global system 'ffmpeg' command...");
