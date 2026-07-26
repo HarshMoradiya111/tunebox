@@ -20,6 +20,7 @@ export default function UploadPage() {
 
   const [isDragging, setIsDragging] = useState(false);
   const [storageUsage, setStorageUsage] = useState<any>(null);
+  const [targetPlaylist, setTargetPlaylist] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
 
@@ -131,15 +132,25 @@ export default function UploadPage() {
       {/* Track List */}
       {tracks.length > 0 && (
         <div className="mt-6 sm:mt-8 flex-1 flex flex-col min-h-0">
-          <div className="flex flex-row justify-between items-center mb-4 gap-2">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
             <h2 className="text-lg sm:text-xl font-bold">Selected Files ({tracks.length})</h2>
-            <button 
-              onClick={() => uploadAll(addToQueue)}
-              disabled={!tracks.some(t => t.status === "pending" || t.status === "error")}
-              className="bg-white text-black font-bold py-2 px-5 sm:px-6 rounded-full hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-            >
-              Upload All
-            </button>
+            
+            <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+              <input 
+                type="text" 
+                placeholder="Assign Playlist (e.g. Bollywood)"
+                value={targetPlaylist}
+                onChange={(e) => setTargetPlaylist(e.target.value)}
+                className="bg-[#282828] focus:bg-[#333] text-sm text-white px-4 py-2 rounded-full outline-none border border-transparent focus:border-[#1db954] transition-all w-full sm:w-64 placeholder-[#b3b3b3]"
+              />
+              <button 
+                onClick={() => uploadAll(addToQueue, targetPlaylist)}
+                disabled={!tracks.some(t => t.status === "pending" || t.status === "error")}
+                className="bg-white text-black font-bold py-2 px-6 rounded-full hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed text-sm shrink-0 w-full sm:w-auto"
+              >
+                Upload All
+              </button>
+            </div>
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-3 sm:space-y-4 pr-1 sm:pr-2">

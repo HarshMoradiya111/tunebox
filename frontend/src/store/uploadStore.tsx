@@ -23,7 +23,7 @@ interface UploadContextType {
   processFiles: (files: File[]) => Promise<void>;
   removeTrack: (id: string) => void;
   updateTrackField: (id: string, field: keyof LocalTrack, value: string | number) => void;
-  uploadAll: (addToQueue: (track: any) => void) => Promise<void>;
+  uploadAll: (addToQueue: (track: any) => void, targetPlaylist?: string) => Promise<void>;
 }
 
 const UploadContext = createContext<UploadContextType | undefined>(undefined);
@@ -77,7 +77,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     setTracks((prev) => prev.filter((t) => t.id !== id));
   };
 
-  const uploadAll = async (addToQueue: (track: any) => void) => {
+  const uploadAll = async (addToQueue: (track: any) => void, targetPlaylist?: string) => {
     // 1. Fetch existing library tracks to pre-check duplicates instantly (0ms)
     let existingTracks: any[] = [];
     try {
@@ -127,6 +127,9 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       formData.append("artist", track.artist);
       formData.append("album", track.album);
       formData.append("duration", track.duration.toString());
+      if (targetPlaylist) {
+        formData.append("playlist", targetPlaylist);
+      }
       if (track.coverFile) {
         formData.append("coverArt", track.coverFile);
       }
